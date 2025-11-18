@@ -1,0 +1,14 @@
+# Virtual environment
+venv/
+.vscode/
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Firebase private keys
+app/firebase/*.json
+
+# Cache
+*.log
