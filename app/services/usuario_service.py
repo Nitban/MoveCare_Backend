@@ -6,8 +6,12 @@ from app.services.firebase_service import FirebaseAuthService
 from app.services.storage_service import StorageService
 from app.core.security import crear_jwt
 
+
 class UsuarioService:
 
+    # -------------------------------------------------------
+    # Crear usuario completo
+    # -------------------------------------------------------
     @staticmethod
     def crear_usuario(db: Session, data, is_conductor=False):
 
@@ -27,14 +31,14 @@ class UsuarioService:
             discapacidad=data.discapacidad,
             tipo_usuario=data.tipo_usuario,
             foto_ine_url=ine_url,
-            activo=False
+            activo=False   # Se activará tras verificar correo
         )
 
         db.add(usuario)
         db.commit()
         db.refresh(usuario)
 
-        # Crear perfil correspondiente
+        # Crear perfil adicional
         if is_conductor:
             licencia_url = StorageService.subir_imagen(data.licencia_base64, "licencias")
 
@@ -52,6 +56,9 @@ class UsuarioService:
 
         return usuario
 
+    # -------------------------------------------------------
+    # Activar usuario luego de verificar correo
+    # -------------------------------------------------------
     @staticmethod
     def activar_usuario(db: Session, uid_firebase: str):
         usuario = db.query(Usuario).filter(Usuario.uid_firebase == uid_firebase).first()
@@ -61,31 +68,39 @@ class UsuarioService:
             return True
         return False
 
+    # -------------------------------------------------------
+    # Login
+    # -------------------------------------------------------
     @staticmethod
     def login(db: Session, correo: str, password: str):
+
+        # 1. Validar credenciales con Firebase (REST)
         datos = FirebaseAuthService.validar_credenciales(correo, password)
         if not datos:
             return None, "Correo o contraseña incorrectos."
 
         uid = datos["localId"]
 
-        # validar que está verificado
+        # 2. Validar si el email está verificado
         usuario_firebase = FirebaseAuthService.obtener_usuario(uid)
         if not usuario_firebase.email_verified:
-            return None, "Correo no verificado."
+            return None, "Correo no verificado. Revisa tu bandeja."
 
-        # activar en Supabase
+        # 3. Activar en BD si procede
         UsuarioService.activar_usuario(db, uid)
 
-        # verificar si existe en BD
+        # 4. Traer usuario local
         usuario = db.query(Usuario).filter(Usuario.uid_firebase == uid).first()
         if not usuario:
-            return None, "Usuario no encontrado en BD."
+            return None, "Usuario no encontrado en la Base de Datos."
 
         if usuario.activo is False:
             return None, "Cuenta aún no activa."
 
-        # Generar token interno
-        token = crear_jwt(usuario.id)
+        # 5. Generar token interno
+        token = crear_jwt({
+            "id_usuario": usuario.id,
+            "tipo_usuario": usuario.tipo_usuario
+        })
 
         return token, "Login exitoso."
