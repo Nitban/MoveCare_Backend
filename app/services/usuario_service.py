@@ -9,9 +9,7 @@ from app.core.security import crear_jwt
 
 class UsuarioService:
 
-    # -------------------------------------------------------
     # Crear usuario completo
-    # -------------------------------------------------------
     @staticmethod
     def crear_usuario(db: Session, data, is_conductor=False):
 
@@ -56,9 +54,7 @@ class UsuarioService:
 
         return usuario
 
-    # -------------------------------------------------------
     # Activar usuario luego de verificar correo
-    # -------------------------------------------------------
     @staticmethod
     def activar_usuario(db: Session, uid_firebase: str):
         usuario = db.query(Usuario).filter(Usuario.uid_firebase == uid_firebase).first()
@@ -68,9 +64,7 @@ class UsuarioService:
             return True
         return False
 
-    # -------------------------------------------------------
     # Login
-    # -------------------------------------------------------
     @staticmethod
     def login(db: Session, correo: str, password: str):
 

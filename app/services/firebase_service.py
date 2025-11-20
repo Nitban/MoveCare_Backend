@@ -12,40 +12,29 @@ if not firebase_admin._apps:
 
 class FirebaseAuthService:
 
-    # --------------------------------------------------
     # Crear usuario en Firebase Authentication
-    # --------------------------------------------------
     @staticmethod
     def crear_usuario(correo: str, password: str):
         user = auth.create_user(email=correo, password=password)
-        # no enviamos verificación aquí porque la app enviará el link cuando lo requieras
         return user.uid
 
-    # --------------------------------------------------
     # Generar link de verificación
-    # --------------------------------------------------
     @staticmethod
     def enviar_verificacion(correo: str):
         link = auth.generate_email_verification_link(correo)
         return link
 
-    # --------------------------------------------------
     # Verificar token ID devuelto por Firebase
-    # --------------------------------------------------
     @staticmethod
     def verificar_token(token: str):
         return auth.verify_id_token(token)
 
-    # --------------------------------------------------
     # Obtener usuario por UID
-    # --------------------------------------------------
     @staticmethod
     def obtener_usuario(uid: str):
         return auth.get_user(uid)
 
-    # --------------------------------------------------
     # Validar Credenciales
-    # --------------------------------------------------
     @staticmethod
     def validar_credenciales(correo: str, password: str):
         """
