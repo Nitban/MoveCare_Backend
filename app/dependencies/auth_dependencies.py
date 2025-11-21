@@ -35,18 +35,18 @@ def get_current_user(
 
 # Dependencia: SOLO ADMINISTRADORES
 def require_admin(current_user: Usuario = Depends(get_current_user)):
-    if current_user.tipo_usuario != "administrador":
+    if current_user.rol != "administrador":
         raise HTTPException(status_code=403, detail="Acceso restringido a administradores")
     return current_user
 
 # Dependencia: SOLO CHOFER
 def require_conductor(current_user: Usuario = Depends(get_current_user)):
-    if current_user.tipo_usuario != "conductor":
+    if current_user.rol != "conductor":
         raise HTTPException(status_code=403, detail="Acceso restringido a conductores")
     return current_user
 
 # Dependencia: SOLO PASAJERO
 def require_pasajero(current_user: Usuario = Depends(get_current_user)):
-    if current_user.tipo_usuario != "pasajero":
+    if current_user.rol != "pasajero":
         raise HTTPException(status_code=403, detail="Acceso restringido a pasajeros")
     return current_user

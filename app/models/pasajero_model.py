@@ -1,11 +1,11 @@
-from sqlalchemy import Column, Integer, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
+import uuid
 
 class Pasajero(Base):
     __tablename__ = "pasajero"
 
-    id = Column(Integer, primary_key=True, index=True)
-    id_usuario = Column(Integer, ForeignKey("usuario.id"))
+    id_pasajero = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id_usuario = Column(UUID(as_uuid=True), ForeignKey("usuario.id_usuario"), nullable=False)
 
-    usuario = relationship("Usuario", back_populates="pasajero")
