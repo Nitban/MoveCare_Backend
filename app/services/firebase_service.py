@@ -1,51 +1,49 @@
-import os
-import requests
 import firebase_admin
 from firebase_admin import credentials, auth
+import requests
+import os
 
-SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_CREDENTIALS", "firebase_key.json")
+SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_CREDENTIALS", "firebase-adminsdk.json")
 
-if not firebase_admin._apps:
-    cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
-    firebase_admin.initialize_app(cred)
+cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
+firebase_admin.initialize_app(cred)
 
 
 class FirebaseAuthService:
 
-    # Crear usuario en Firebase Authentication
     @staticmethod
     def crear_usuario(correo: str, password: str):
-        user = auth.create_user(email=correo, password=password)
-        return user.uid
+        try:
+            user = auth.create_user(email=correo, password=password)
+            auth.generate_email_verification_link(correo)
+            return user.uid
+        except Exception as e:
+            raise Exception(f"Error Firebase al crear usuario: {str(e)}")
 
-    # Generar link de verificación
     @staticmethod
     def enviar_verificacion(correo: str):
-        link = auth.generate_email_verification_link(correo)
-        return link
+        try:
+            return auth.generate_email_verification_link(correo)
+        except Exception as e:
+            raise Exception(f"Error al generar link de verificación: {str(e)}")
 
-    # Verificar token ID devuelto por Firebase
     @staticmethod
-    def verificar_token(token: str):
-        return auth.verify_id_token(token)
+    def verificar_correo(id_token: str):
+        """
+        Verifica si un ID token está firmado y si el correo está verificado.
+        """
+        try:
+            decoded = auth.verify_id_token(id_token)
+            return decoded
+        except Exception as e:
+            raise Exception(f"Token inválido o expirado: {str(e)}")
 
-    # Obtener usuario por UID
-    @staticmethod
-    def obtener_usuario(uid: str):
-        return auth.get_user(uid)
-
-    # Validar Credenciales
     @staticmethod
     def validar_credenciales(correo: str, password: str):
-        """
-        Firebase Admin **NO** puede hacer login.
-        Por eso hacemos login usando el endpoint oficial REST.
-        """
-        FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
-        if not FIREBASE_API_KEY:
-            raise Exception("Faltó configurar FIREBASE_API_KEY en el .env")
-
-        url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
+        url = (
+            f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
+            f"?key={os.getenv('FIREBASE_API_KEY')}"
+        )
 
         payload = {
             "email": correo,
@@ -54,13 +52,9 @@ class FirebaseAuthService:
         }
 
         r = requests.post(url, json=payload)
-
-        if r.status_code != 200:
-            return None
-
         data = r.json()
 
         if "idToken" in data:
             return data
-
-        return None
+        else:
+            raise Exception(data.get("error", {}).get("message", "Error desconocido"))

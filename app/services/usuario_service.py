@@ -3,33 +3,29 @@ from app.models.usuario_model import Usuario
 from app.models.pasajero_model import Pasajero
 from app.models.conductor_model import Conductor
 from app.services.firebase_service import FirebaseAuthService
-from app.services.storage_service import StorageService
 from app.core.security import crear_jwt
 
 
 class UsuarioService:
 
-    # Crear usuario completo
     @staticmethod
     def crear_usuario(db: Session, data, is_conductor=False):
 
         # Crear usuario en Firebase
         uid = FirebaseAuthService.crear_usuario(data.correo, data.password)
 
-        # Subir INE
-        ine_url = StorageService.subir_imagen(data.foto_ine_base64, "ine")
-
+        # Guardar INE como base64 directamente
         usuario = Usuario(
             uid_firebase=uid,
             nombre_completo=data.nombre_completo,
             edad=data.edad,
             direccion=data.direccion,
-            telefono=data.telefono,
             correo=data.correo,
+            telefono=data.telefono,
             discapacidad=data.discapacidad,
-            tipo_usuario=data.tipo_usuario,
-            foto_ine_url=ine_url,
-            activo=False   # Se activará tras verificar correo
+            rol=data.rol,
+            foto_ine=data.foto_ine_base64,
+            activo=False
         )
 
         db.add(usuario)
@@ -38,63 +34,61 @@ class UsuarioService:
 
         # Crear perfil adicional
         if is_conductor:
-            licencia_url = StorageService.subir_imagen(data.licencia_base64, "licencias")
-
             conductor = Conductor(
-                id_usuario=usuario.id,
-                licencia_url=licencia_url
+                id_usuario=usuario.id_usuario,
+                licencia_conduccion=data.licencia_base64
             )
             db.add(conductor)
 
         else:
-            pasajero = Pasajero(id_usuario=usuario.id)
+            pasajero = Pasajero(id_usuario=usuario.id_usuario)
             db.add(pasajero)
 
         db.commit()
 
         return usuario
 
-    # Activar usuario luego de verificar correo
     @staticmethod
-    def activar_usuario(db: Session, uid_firebase: str):
+    def activar_correo(db: Session, uid_firebase: str):
         usuario = db.query(Usuario).filter(Usuario.uid_firebase == uid_firebase).first()
         if usuario:
-            usuario.activo = True
+            usuario.autentificado = True
             db.commit()
             return True
         return False
 
-    # Login
     @staticmethod
     def login(db: Session, correo: str, password: str):
 
-        # 1. Validar credenciales con Firebase (REST)
-        datos = FirebaseAuthService.validar_credenciales(correo, password)
-        if not datos:
-            return None, "Correo o contraseña incorrectos."
+        try:
+            cred = FirebaseAuthService.validar_credenciales(correo, password)
+        except Exception as e:
+            return None, f"Error Firebase: {str(e)}"
 
-        uid = datos["localId"]
+        uid = cred.get("localId")
 
-        # 2. Validar si el email está verificado
-        usuario_firebase = FirebaseAuthService.obtener_usuario(uid)
-        if not usuario_firebase.email_verified:
-            return None, "Correo no verificado. Revisa tu bandeja."
+        # Validar email verificado
+        firebase_user = FirebaseAuthService.obtener_usuario(uid)
+        if not firebase_user.email_verified:
+            return None, "Correo no verificado."
 
-        # 3. Activar en BD si procede
-        UsuarioService.activar_usuario(db, uid)
+        # Activar correo verificado
+        UsuarioService.activar_correo(db, uid)
 
-        # 4. Traer usuario local
+        # Validar existencia en BD
         usuario = db.query(Usuario).filter(Usuario.uid_firebase == uid).first()
         if not usuario:
-            return None, "Usuario no encontrado en la Base de Datos."
+            return None, "Usuario no encontrado en Supabase."
 
-        if usuario.activo is False:
-            return None, "Cuenta aún no activa."
+        if not usuario.autentificado:
+            return None, "Correo no verificado."
 
-        # 5. Generar token interno
+        if not usuario.activo:
+            return None, "Tu cuenta aún no ha sido aprobada por los administradores."
+
         token = crear_jwt({
-            "id_usuario": usuario.id,
-            "tipo_usuario": usuario.tipo_usuario
+            "id_usuario": str(usuario.id_usuario),
+            "rol": usuario.rol
         })
 
         return token, "Login exitoso."

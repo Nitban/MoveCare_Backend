@@ -5,6 +5,7 @@ from app.routers import auth_route
 app = FastAPI(
     title="MoveCare Backend",
     version="1.0.0",
+    debug=True
 )
 
 # ============================

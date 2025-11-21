@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 
+
 class RegistroBase(BaseModel):
     nombre_completo: str
     edad: int
@@ -8,29 +9,30 @@ class RegistroBase(BaseModel):
     telefono: str
     correo: EmailStr
     discapacidad: Optional[str] = None
-    tipo_usuario: str  # pasajero o conductor
+    rol: str                         # pasajero / conductor
     password: str
+    foto_ine_base64: str
+
 
 class RegistroPasajero(RegistroBase):
-    foto_ine_base64: str  # imagen en base64
+    pass
+
 
 class RegistroConductor(RegistroBase):
-    foto_ine_base64: str
     licencia_base64: str
-    vehiculo_marca: str
-    vehiculo_modelo: str
-    vehiculo_color: str
-    vehiculo_placas: str
+
 
 class LoginSchema(BaseModel):
     correo: EmailStr
     password: str
 
+
 class LoginResponse(BaseModel):
-    access_token: str
+    mensaje: str
+    access_token: Optional[str] = None
     token_type: str = "bearer"
-    id_usuario: Optional[int] = None
-    mensaje: Optional[str] = None
+    id_usuario: Optional[str] = None
+
 
 class VerifyEmailRequest(BaseModel):
     id_token: str

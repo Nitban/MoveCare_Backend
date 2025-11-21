@@ -6,8 +6,8 @@ DATABASE_URL = settings.DATABASE_URL
 
 engine = create_engine(
     DATABASE_URL,
+    connect_args={"sslmode": "require"},
     pool_pre_ping=True,
-    echo=False  # pon True si quieres ver las consultas
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
