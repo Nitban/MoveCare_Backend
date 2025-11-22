@@ -4,17 +4,18 @@ from app.models.pasajero_model import Pasajero
 from app.models.conductor_model import Conductor
 from app.services.firebase_service import FirebaseAuthService
 from app.core.security import crear_jwt
-
+from app.services.email_service import EmailService
+import os
 
 class UsuarioService:
 
     @staticmethod
-    def crear_usuario(db: Session, data, is_conductor=False):
+    async def crear_usuario(db: Session, data, is_conductor=False):
 
-        # Crear usuario en Firebase
+        # 1. Crear usuario en Firebase Auth
         uid = FirebaseAuthService.crear_usuario(data.correo, data.password)
 
-        # Guardar INE como base64 directamente
+        # 2. Crear usuario en Supabase
         usuario = Usuario(
             uid_firebase=uid,
             nombre_completo=data.nombre_completo,
@@ -25,26 +26,66 @@ class UsuarioService:
             discapacidad=data.discapacidad,
             rol=data.rol,
             foto_ine=data.foto_ine_base64,
-            activo=False
+            activo=False,  # Admin debe aprobar
+            autentificado=False  # Correo aún no verificado
         )
 
         db.add(usuario)
         db.commit()
         db.refresh(usuario)
 
-        # Crear perfil adicional
+        # 3. Crear perfil adicional
         if is_conductor:
             conductor = Conductor(
                 id_usuario=usuario.id_usuario,
                 licencia_conduccion=data.licencia_base64
             )
             db.add(conductor)
-
         else:
             pasajero = Pasajero(id_usuario=usuario.id_usuario)
             db.add(pasajero)
 
         db.commit()
+
+        # 4. Enviar correo de verificación
+        link = f"{os.getenv('FRONTEND_URL')}/confirmar-correo?uid={uid}"
+
+        html = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 20px; 
+                        border-radius: 12px; background: #ffffff; border: 1px solid #e0e0e0;">
+
+                <h2 style="color: #4A4A4A; text-align: center;">Bienvenido a MoveCare 🚗💙</h2>
+
+                <p style="font-size: 15px; color: #333;">
+                    Hola <b>{usuario.nombre_completo}</b>,<br><br>
+                    Gracias por registrarte. Antes de continuar, necesitamos que verifiques tu correo electrónico.
+                </p>
+
+                <div style="text-align: center; margin: 25px 0;">
+                    <a href="{link}"
+                       style="background-color: #007BFF; color: white; padding: 12px 18px; 
+                              border-radius: 8px; text-decoration: none; font-size: 16px;
+                              display: inline-block;">
+                        Verificar correo
+                    </a>
+                </div>
+
+                <p style="font-size: 14px; color: #555;">
+                    Si tú no creaste esta cuenta, puedes ignorar este mensaje.
+                </p>
+
+                <hr style="margin: 25px 0; border: none; border-top: 1px solid #ddd;">
+                <p style="font-size: 12px; text-align: center; color: #888;">
+                    © {2025} MoveCare. Todos los derechos reservados.
+                </p>
+            </div>
+            """
+
+        await EmailService.enviar_correo(
+            usuario.correo,
+            "Verifica tu cuenta | MoveCare",
+            html
+        )
 
         return usuario
 
@@ -60,6 +101,7 @@ class UsuarioService:
     @staticmethod
     def login(db: Session, correo: str, password: str):
 
+        # 1. Validar con Firebase
         try:
             cred = FirebaseAuthService.validar_credenciales(correo, password)
         except Exception as e:
@@ -67,25 +109,19 @@ class UsuarioService:
 
         uid = cred.get("localId")
 
-        # Validar email verificado
-        firebase_user = FirebaseAuthService.obtener_usuario(uid)
-        if not firebase_user.email_verified:
-            return None, "Correo no verificado."
-
-        # Activar correo verificado
-        UsuarioService.activar_correo(db, uid)
-
-        # Validar existencia en BD
+        # 2. Buscar usuario local
         usuario = db.query(Usuario).filter(Usuario.uid_firebase == uid).first()
+
         if not usuario:
             return None, "Usuario no encontrado en Supabase."
 
         if not usuario.autentificado:
-            return None, "Correo no verificado."
+            return None, "Debes verificar tu correo antes de iniciar sesión."
 
         if not usuario.activo:
             return None, "Tu cuenta aún no ha sido aprobada por los administradores."
 
+        # 3. JWT
         token = crear_jwt({
             "id_usuario": str(usuario.id_usuario),
             "rol": usuario.rol

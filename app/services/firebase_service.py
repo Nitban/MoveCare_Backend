@@ -58,3 +58,10 @@ class FirebaseAuthService:
             return data
         else:
             raise Exception(data.get("error", {}).get("message", "Error desconocido"))
+
+    @staticmethod
+    def obtener_usuario(uid: str):
+        try:
+            return auth.get_user(uid)
+        except Exception as e:
+            raise Exception(f"Error al obtener usuario de Firebase: {str(e)}")

@@ -8,22 +8,21 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/registro/pasajero")
-def registrar_pasajero(data: RegistroPasajero, db: Session = Depends(get_db)):
+async def registrar_pasajero(data: RegistroPasajero, db: Session = Depends(get_db)):
     try:
-        UsuarioService.crear_usuario(db, data, is_conductor=False)
+        await UsuarioService.crear_usuario(db, data, is_conductor=False)
         return {"mensaje": "Registro exitoso. Revisa tu correo para verificar tu cuenta."}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/registro/conductor")
-def registrar_conductor(data: RegistroConductor, db: Session = Depends(get_db)):
+async def registrar_conductor(data: RegistroConductor, db: Session = Depends(get_db)):
     try:
-        UsuarioService.crear_usuario(db, data, is_conductor=True)
+        await UsuarioService.crear_usuario(db, data, is_conductor=True)
         return {"mensaje": "Registro exitoso. Revisa tu correo para verificar tu cuenta."}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-
 
 @router.post("/login")
 def login(data: LoginSchema, db: Session = Depends(get_db)):
@@ -32,18 +31,21 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail=msg)
     return {"mensaje": msg, "token": token}
 
-#@router.post("/verificar-correo")
-#def verificar_correo(data: VerifyEmailRequest, db: Session = Depends(get_db)):
- #   verificado, uid = FirebaseAuthService.verificar_email(data.id_token)
+@router.get("/confirmar")
+def confirmar(uid: str, db: Session = Depends(get_db)):
+    ok = UsuarioService.activar_correo(db, uid)
 
-  #  if not verificado:
-   #     raise HTTPException(
-    #        status_code=400,
-      #      detail="Correo aún no verificado en Firebase."
-     #   )
+    if not ok:
+        raise HTTPException(400, "UID inválido")
 
-    # Activar en BD
-    #UsuarioService.activar_usuario(db, uid)
+    return {"mensaje": "Correo verificado correctamente"}
 
-    #return {"mensaje": "Correo verificado y usuario activado correctamente."}
+@router.get("/verificar-correo")
+def verificar_correo(uid: str, db: Session = Depends(get_db)):
+    ok = UsuarioService.activar_correo(db, uid)
+    if not ok:
+        raise HTTPException(status_code=400, detail="No se encontró usuario con ese UID")
+
+    return {"mensaje": "Correo verificado correctamente"}
+
 
