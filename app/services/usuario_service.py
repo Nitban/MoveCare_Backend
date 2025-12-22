@@ -101,7 +101,6 @@ class UsuarioService:
     @staticmethod
     def login(db: Session, correo: str, password: str):
 
-        # 1. Validar con Firebase
         try:
             cred = FirebaseAuthService.validar_credenciales(correo, password)
         except Exception as e:
@@ -109,7 +108,6 @@ class UsuarioService:
 
         uid = cred.get("localId")
 
-        # 2. Buscar usuario local
         usuario = db.query(Usuario).filter(Usuario.uid_firebase == uid).first()
 
         if not usuario:
@@ -121,10 +119,13 @@ class UsuarioService:
         if not usuario.activo:
             return None, "Tu cuenta aún no ha sido aprobada por los administradores."
 
-        # 3. JWT
-        token = crear_jwt({
-            "id_usuario": str(usuario.id_usuario),
+        payload = {
+            "sub": str(usuario.id_usuario),  # 🔥 FIX
+            "uid": usuario.uid_firebase,
+            "correo": usuario.correo,
             "rol": usuario.rol
-        })
+        }
 
-        return token, "Login exitoso."
+        token = crear_jwt(payload)
+
+        return token, "Login exitoso.", usuario.rol

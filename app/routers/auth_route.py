@@ -26,10 +26,16 @@ async def registrar_conductor(data: RegistroConductor, db: Session = Depends(get
 
 @router.post("/login")
 def login(data: LoginSchema, db: Session = Depends(get_db)):
-    token, msg = UsuarioService.login(db, data.correo, data.password)
+    token, msg, rol = UsuarioService.login(db, data.correo, data.password)
+
     if token is None:
         raise HTTPException(status_code=401, detail=msg)
-    return {"mensaje": msg, "token": token}
+
+    return {
+        "mensaje": msg,
+        "token": token,
+        "rol": rol
+    }
 
 @router.get("/confirmar")
 def confirmar(uid: str, db: Session = Depends(get_db)):
