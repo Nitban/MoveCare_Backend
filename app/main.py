@@ -1,6 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth_route
+import app.models
+from app.core.database import engine, Base
+from sqlalchemy.orm import configure_mappers
+from app.routes import auth_router, vehiculo_router, usuario_router
+
+try:
+    configure_mappers()
+except Exception as e:
+    print(f"Error configurando mappers: {e}")
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="MoveCare Backend",
@@ -22,7 +32,10 @@ app.add_middleware(
 # ============================
 # Routers
 # ============================
-app.include_router(auth_route.router, prefix="/auth", tags=["Auth"])
+
+app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
+app.include_router(vehiculo_router.router, prefix="/register", tags=["Vehiculos"])
+app.include_router(usuario_router.router, prefix="/users", tags=["Usuarios"])
 
 # ============================
 # Root endpoint

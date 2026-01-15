@@ -116,8 +116,8 @@ class UsuarioService:
         if not usuario.autentificado:
             return None, "Debes verificar tu correo antes de iniciar sesión."
 
-        if not usuario.activo:
-            return None, "Tu cuenta aún no ha sido aprobada por los administradores."
+        ##if not usuario.activo:
+          ##  return None, "Tu cuenta aún no ha sido aprobada por los administradores."
 
         payload = {
             "sub": str(usuario.id_usuario),  # 🔥 FIX
@@ -129,3 +129,16 @@ class UsuarioService:
         token = crear_jwt(payload)
 
         return token, "Login exitoso.", usuario.rol
+
+    @staticmethod
+    def obtener_id_conductor_por_usuario(db: Session, id_usuario):
+        conductor = (
+            db.query(Conductor)
+            .filter(Conductor.id_usuario == id_usuario)
+            .first()
+        )
+
+        if not conductor:
+            return None
+
+        return conductor.id_conductor
