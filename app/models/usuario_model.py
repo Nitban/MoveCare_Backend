@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Boolean, Integer, Text, TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.core.database import Base
+from sqlalchemy.orm import relationship
 import uuid
 
 
@@ -21,4 +22,8 @@ class Usuario(Base):
     activo = Column(Boolean, default=False)
     autentificado = Column(Boolean, default=False)                 # email verificado
     fecha_registro = Column(TIMESTAMP, server_default=func.now())
+
+    # Usa strings para evitar errores de carga
+    conductor = relationship("Conductor", back_populates="usuario", uselist=False)
+    pasajero = relationship("Pasajero", back_populates="usuario", uselist=False)
 

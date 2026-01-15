@@ -10,8 +10,11 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 @router.post("/registro/pasajero")
 async def registrar_pasajero(data: RegistroPasajero, db: Session = Depends(get_db)):
     try:
-        await UsuarioService.crear_usuario(db, data, is_conductor=False)
-        return {"mensaje": "Registro exitoso. Revisa tu correo para verificar tu cuenta."}
+        usuario = await UsuarioService.crear_usuario(db, data, is_conductor=False)
+        return {
+            "mensaje": "Registro exitoso. Revisa tu correo para verificar tu cuenta.",
+            "id_usuario": usuario.id_usuario
+        }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -19,10 +22,14 @@ async def registrar_pasajero(data: RegistroPasajero, db: Session = Depends(get_d
 @router.post("/registro/conductor")
 async def registrar_conductor(data: RegistroConductor, db: Session = Depends(get_db)):
     try:
-        await UsuarioService.crear_usuario(db, data, is_conductor=True)
-        return {"mensaje": "Registro exitoso. Revisa tu correo para verificar tu cuenta."}
+        usuario = await UsuarioService.crear_usuario(db, data, is_conductor=True)
+        return {
+            "mensaje": "Registro exitoso. Revisa tu correo para verificar tu cuenta.",
+            "id_usuario": usuario.id_usuario
+        }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.post("/login")
 def login(data: LoginSchema, db: Session = Depends(get_db)):

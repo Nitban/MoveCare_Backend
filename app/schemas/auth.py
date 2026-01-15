@@ -4,22 +4,23 @@ from typing import Optional
 
 class RegistroBase(BaseModel):
     nombre_completo: str
-    edad: int
-    direccion: str
-    telefono: str
     correo: EmailStr
-    discapacidad: Optional[str] = None
-    rol: str                         # pasajero / conductor
+    telefono: str
     password: str
-    foto_ine_base64: str
+    # Campos que el front NO envía en el registro inicial
+    edad: Optional[int] = None
+    direccion: Optional[str] = None
+    discapacidad: Optional[str] = None
+    foto_ine_base64: Optional[str] = None
 
 
 class RegistroPasajero(RegistroBase):
-    pass
+    rol: str = "pasajero"
 
 
 class RegistroConductor(RegistroBase):
-    licencia_base64: str
+    rol: str = "conductor"
+    licencia_base64: Optional[str] = None
 
 
 class LoginSchema(BaseModel):
