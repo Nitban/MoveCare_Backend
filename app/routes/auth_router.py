@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.auth import RegistroPasajero, RegistroConductor, LoginSchema
+from app.schemas.confirmarCorreo import ConfirmarCorreoRequest
 from app.services.usuario_service import UsuarioService
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -38,27 +39,24 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
     if token is None:
         raise HTTPException(status_code=401, detail=msg)
 
+    print(msg)
     return {
         "mensaje": msg,
         "token": token,
         "rol": rol
     }
 
-@router.get("/confirmar")
-def confirmar(uid: str, db: Session = Depends(get_db)):
-    ok = UsuarioService.activar_correo(db, uid)
+@router.post("/confirmar-correo")
+def confirmar_correo(
+    data: ConfirmarCorreoRequest,
+    db: Session = Depends(get_db)
+):
+    ok = UsuarioService.confirmar_correo(db, data.uid)
 
     if not ok:
-        raise HTTPException(400, "UID inválido")
+        raise HTTPException(
+            status_code=400,
+            detail="UID inválido o usuario no encontrado"
+        )
 
     return {"mensaje": "Correo verificado correctamente"}
-
-@router.get("/verificar-correo")
-def verificar_correo(uid: str, db: Session = Depends(get_db)):
-    ok = UsuarioService.activar_correo(db, uid)
-    if not ok:
-        raise HTTPException(status_code=400, detail="No se encontró usuario con ese UID")
-
-    return {"mensaje": "Correo verificado correctamente"}
-
-
