@@ -18,6 +18,7 @@ class Usuario(Base):
     telefono = Column(String, nullable=False)
     discapacidad = Column(Text)
     foto_ine = Column(Text, nullable=False)                        # nombre correcto
+    foto_ine_reverso = Column(Text, nullable=False)
     rol = Column(String, nullable=False)                           # pasajero/conductor
     activo = Column(Boolean, default=False)
     autentificado = Column(Boolean, default=False)                 # email verificado
