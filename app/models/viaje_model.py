@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Text, String, TIMESTAMP, ForeignKey, Integer, Numeric
+from sqlalchemy import Column, Text, String, TIMESTAMP, ForeignKey, Integer, Numeric, Float
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 import uuid
@@ -43,11 +43,13 @@ class Viaje(Base):
     estado = Column(
         String,
         nullable=False,
-        default="pendiente"
-        # pendiente | en_curso | finalizado | cancelado
+        default="Pendiente"
+        # pendiente | agendado | en_curso | finalizado | cancelado
     )
 
     ruta = Column(JSONB, nullable=True)
 
     duracion_estimada = Column(Integer, nullable=True)
     duracion_real = Column(Integer, nullable=True)
+    cal_pasajero = Column(Float, nullable=True)
+    cal_conductor = Column(Float, nullable=True)

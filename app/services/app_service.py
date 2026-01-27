@@ -22,24 +22,68 @@ class AppService:
             return None
 
         viaje_proximo = (
-            db.query(Viaje)
+            db.query(
+                Viaje,
+                Usuario.nombre_completo.label("nombre_conductor")
+            )
+            .outerjoin(
+                Conductor, Conductor.id_conductor == Viaje.id_conductor
+            )
+            .outerjoin(
+                Usuario, Usuario.id_usuario == Conductor.id_usuario
+            )
             .filter(
                 Viaje.id_pasajero == usuario.pasajero.id_pasajero,
-                Viaje.estado.in_(["pendiente", "en_curso"])
+                Viaje.estado.in_(["Agendado", "En_curso"])
             )
             .order_by(Viaje.fecha_hora_inicio.asc())
             .first()
         )
 
         historial = (
-            db.query(Viaje)
+            db.query(
+                Viaje,
+                Usuario.nombre_completo.label("nombre_conductor")
+            )
+            .outerjoin(
+                Conductor,
+                Conductor.id_conductor == Viaje.id_conductor
+            )
+            .outerjoin(
+                Usuario,
+                Usuario.id_usuario == Conductor.id_usuario
+            )
             .filter(
                 Viaje.id_pasajero == usuario.pasajero.id_pasajero,
-                Viaje.estado == "finalizado"
+                Viaje.estado == "Finalizado"
             )
             .order_by(Viaje.fecha_hora_inicio.desc())
             .all()
         )
+
+        historial_json = []
+
+        for viaje, nombre_conductor in historial:
+            historial_json.append({
+                "id_viaje": viaje.id_viaje,
+                "fecha_hora_inicio": viaje.fecha_hora_inicio.isoformat(),
+                "destino": viaje.destino,
+                "estado": viaje.estado,
+                "conductor_nombre": nombre_conductor or ""
+            }
+        )
+
+        viaje_data = None
+
+        if viaje_proximo:
+            viaje, nombre_conductor = viaje_proximo
+            viaje_data = {
+                "id_viaje": viaje.id_viaje,
+                "fecha_hora_inicio": viaje.fecha_hora_inicio.isoformat(),
+                "destino": viaje.destino,
+                "estado": viaje.estado,
+                "nombre_conductor": nombre_conductor,
+            }
 
         return {
             "usuario": {
@@ -49,8 +93,8 @@ class AppService:
                 "rol": usuario.rol,
                 "id_pasajero": usuario.pasajero.id_pasajero
             },
-            "viaje_proximo": viaje_proximo,
-            "historial": historial
+            "viaje_proximo": viaje_data,
+            "historial": historial_json
         }
 
     @staticmethod
