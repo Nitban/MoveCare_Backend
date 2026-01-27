@@ -22,18 +22,18 @@ def crear_jwt(payload: dict):
 
 def verificar_jwt(token: str):
     try:
-        data = jwt.decode(
+        return jwt.decode(
             token,
             settings.JWT_SECRET,
             algorithms=[settings.JWT_ALGORITHM]
         )
-        return data
     except Exception:
         return None
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security),):
-    token = credentials.credentials
-    payload = verificar_jwt(token)
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    payload = verificar_jwt(credentials.credentials)
 
     if payload is None:
         raise HTTPException(
@@ -41,4 +41,9 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             detail="Token inválido o expirado",
         )
 
-    return payload
+    return {
+        "id_usuario": payload.get("sub"),
+        "rol": payload.get("rol"),
+        "correo": payload.get("correo"),
+        "uid_firebase": payload.get("uid"),
+    }

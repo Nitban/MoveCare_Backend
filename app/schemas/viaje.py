@@ -11,3 +11,5 @@ class CrearViajeSchema(BaseModel):
     costo: Optional[float] = None
     ruta: Optional[Dict] = None
     duracion_estimada: Optional[int] = None
+    cal_pasajero: Optional[float] = 5.0
+    cal_conductor: Optional[float] = 5.0

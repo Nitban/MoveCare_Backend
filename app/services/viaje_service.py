@@ -27,9 +27,10 @@ class ViajeService:
             costo=data.costo,
             ruta=data.ruta,
             duracion_estimada=data.duracion_estimada,
-            estado="pendiente",
             fecha_hora_fin=None,
             duracion_real=None,
+            cal_pasajero=data.cal_pasajero,
+            cal_conductor=data.cal_conductor,
             id_conductor=None
         )
 
