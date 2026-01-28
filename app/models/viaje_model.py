@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Text, String, TIMESTAMP, ForeignKey, Integer, Numeric, Float
+from sqlalchemy import Column, Text, String, TIMESTAMP, ForeignKey, Integer, Numeric, Float, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 import uuid
@@ -53,3 +53,10 @@ class Viaje(Base):
     duracion_real = Column(Integer, nullable=True)
     cal_pasajero = Column(Float, nullable=True)
     cal_conductor = Column(Float, nullable=True)
+    especificaciones = Column(String, nullable=True)
+    check_acompanante = Column(Boolean, nullable=True)
+    id_acompanante = Column(
+        UUID(as_uuid=True),
+        ForeignKey("acompanante.id_acompanante", ondelete="SET NULL"),
+        nullable=True
+    )
