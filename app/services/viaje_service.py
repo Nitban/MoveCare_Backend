@@ -31,7 +31,10 @@ class ViajeService:
             duracion_real=None,
             cal_pasajero=data.cal_pasajero,
             cal_conductor=data.cal_conductor,
-            id_conductor=None
+            id_conductor=None,
+            especificaciones=data.especificaciones,
+            check_acompanante=data.check_acompanante,
+            id_acompanante=data.id_acompanante
         )
 
         db.add(viaje)

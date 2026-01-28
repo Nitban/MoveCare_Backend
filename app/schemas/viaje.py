@@ -13,3 +13,5 @@ class CrearViajeSchema(BaseModel):
     duracion_estimada: Optional[int] = None
     cal_pasajero: Optional[float] = 5.0
     cal_conductor: Optional[float] = 5.0
+    especificaciones = Optional[str] = None
+    check_acompanante = Optional[bool] = None
