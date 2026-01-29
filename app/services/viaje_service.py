@@ -25,7 +25,7 @@ class ViajeService:
             fecha_hora_inicio=data.fecha_hora_inicio,
             metodo_pago=data.metodo_pago,
             costo=data.costo,
-            ruta=data.ruta,
+            ruta=None,
             duracion_estimada=data.duracion_estimada,
             fecha_hora_fin=None,
             duracion_real=None,
