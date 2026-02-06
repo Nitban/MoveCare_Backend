@@ -12,3 +12,10 @@ class Pasajero(Base):
 
     usuario = relationship("Usuario", back_populates="pasajero")
 
+    acompanantes = relationship(
+        "Acompanante",
+        back_populates="pasajero",
+        cascade="all, delete-orphan"
+    )
+
+

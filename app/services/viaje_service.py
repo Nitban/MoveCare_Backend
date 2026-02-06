@@ -18,10 +18,24 @@ class ViajeService:
         if not pasajero:
             raise ValueError("El usuario no es pasajero")
 
+        es_multi_destino = getattr(data, "check_destinos", False)
+
+        destinos_procesados = None
+        if es_multi_destino and data.destinos:
+            # Usamos model_dump() para Pydantic V2 o dict() para V1
+            destinos_procesados = [
+                d.model_dump() if hasattr(d, 'model_dump') else d.dict()
+                for d in data.destinos
+            ]
+
         viaje = Viaje(
             id_pasajero=pasajero.id_pasajero,
             punto_inicio=data.punto_inicio,
-            destino=data.destino,
+
+            destino=None if es_multi_destino else data.destino,
+            destinos=destinos_procesados if es_multi_destino else None,
+            check_destinos=es_multi_destino,
+
             fecha_hora_inicio=data.fecha_hora_inicio,
             metodo_pago=data.metodo_pago,
             costo=data.costo,

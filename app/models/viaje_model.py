@@ -60,3 +60,15 @@ class Viaje(Base):
         ForeignKey("acompanante.id_acompanante", ondelete="SET NULL"),
         nullable=True
     )
+
+    check_destinos = Column(
+        Boolean,
+        nullable=False,
+        default=False
+    )
+
+    destinos = Column(
+        JSONB,
+        nullable=True
+    )
+
