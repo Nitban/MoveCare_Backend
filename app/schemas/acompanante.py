@@ -2,23 +2,18 @@ from uuid import UUID
 from typing import Optional
 from pydantic import BaseModel
 
-
 class AcompananteBase(BaseModel):
     nombre_completo: str
-    foto: Optional[str] = None
-    telefono: Optional[str] = None
     parentesco: Optional[str] = None
-
+    ine_frente: Optional[str] = None
+    ine_reverso: Optional[str] = None
 
 class AcompananteCreate(AcompananteBase):
-    id_usuario: UUID  # lo mandan desde el frontend
+    id_usuario: Optional[UUID] = None
 
-
-class AcompananteOut(BaseModel):
+class AcompananteOut(AcompananteBase):
     id_acompanante: UUID
-    nombre_completo: str
-    foto: Optional[str] = None
-    parentesco: Optional[str] = None
+    id_pasajero: UUID
 
     class Config:
         from_attributes = True

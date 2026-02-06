@@ -23,16 +23,16 @@ router = APIRouter(prefix="/acompanantes", tags=["Acompañantes"])
 def crear_acompanante(
     data: AcompananteCreate,
     db: Session = Depends(get_db),
-    user=Depends(require_pasajero)
+    user=Depends(require_pasajero) # Aquí ya validas que sea pasajero
 ):
+    # Usamos el ID que viene del token (seguridad garantizada)
     return AcompananteService.crear(
         db=db,
         id_usuario=user["id_usuario"],
         data=data
     )
 
-
-# ================= LISTAR PARA SELECT =================
+# ================= LISTAR =================
 @router.get(
     "",
     response_model=List[AcompananteOut]
