@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, List
 from datetime import datetime
+from uuid import UUID
 
 class DestinoItem(BaseModel):
     direccion: str
@@ -23,5 +24,18 @@ class CrearViajeSchema(BaseModel):
     id_acompanante: Optional[str] = None
     check_destinos: bool = True
     destinos: List[DestinoItem]
+
+class ViajeDetalleResponse(BaseModel):
+    id_viaje: UUID
+    fecha_inicio: str  # Formato: "DD/MM/YYYY"
+    punto_inicio: str
+    destino: Optional[str]
+    estado: str
+    nombre_conductor: Optional[str] = "Pendiente"
+    foto_conductor: Optional[str] = None
+    # calificacion_conductor: Optional[float] = None # Próximamente
+
+    class Config:
+        from_attributes = True
 
 

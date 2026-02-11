@@ -22,6 +22,7 @@ class Usuario(Base):
     rol = Column(String, nullable=False)                           # pasajero/conductor
     activo = Column(Boolean, default=False)
     autentificado = Column(Boolean, default=False)                 # email verificado
+    foto_perfil = Column(Text, nullable=False)
     fecha_registro = Column(TIMESTAMP, server_default=func.now())
 
     # Usa strings para evitar errores de carga

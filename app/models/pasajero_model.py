@@ -18,4 +18,5 @@ class Pasajero(Base):
         cascade="all, delete-orphan"
     )
 
+    metodos_pago = relationship("MetodoPago", back_populates="pasajero")
 

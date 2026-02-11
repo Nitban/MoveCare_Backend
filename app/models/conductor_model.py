@@ -18,6 +18,8 @@ class Conductor(Base):
 
     usuario = relationship("Usuario", back_populates="conductor")
 
+    cuentas_bancarias = relationship("CuentaBancaria", back_populates="conductor")
+
     # CAMBIO IMPORTANTE AQUÍ:
     #vehiculos = relationship(
         #"Vehiculos",
