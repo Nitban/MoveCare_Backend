@@ -41,7 +41,7 @@ class ViajeService:
             fecha_hora_inicio=data.fecha_hora_inicio,
             metodo_pago=data.metodo_pago,
             costo=data.costo,
-            ruta=None,
+            ruta=data.ruta,
             duracion_estimada=data.duracion_estimada,
             fecha_hora_fin=None,
             duracion_real=None,
@@ -100,3 +100,30 @@ class ViajeService:
             })
 
         return resultado
+
+    @staticmethod
+    def cancelar_viaje(db: Session, id_viaje: str, id_usuario: str):
+        # 1. Obtener el pasajero para validar propiedad
+        pasajero = db.query(Pasajero).filter(Pasajero.id_usuario == id_usuario).first()
+        if not pasajero:
+            raise ValueError("Pasajero no encontrado")
+
+        # 2. Buscar el viaje asegurándonos que sea de este pasajero
+        viaje = db.query(Viaje).filter(
+            Viaje.id_viaje == id_viaje,
+            Viaje.id_pasajero == pasajero.id_pasajero
+        ).first()
+
+        if not viaje:
+            raise ValueError("Viaje no encontrado o no tienes permiso para cancelarlo")
+
+        # 3. Validar que no esté ya cancelado o finalizado
+        if viaje.estado in ["Cancelado", "Finalizado"]:
+            raise ValueError(f"El viaje no se puede cancelar porque ya está {viaje.estado.lower()}")
+
+        # 4. Cambiar el estado y guardar
+        viaje.estado = "Cancelado"
+        db.commit()
+        db.refresh(viaje)
+
+        return viaje

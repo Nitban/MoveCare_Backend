@@ -19,12 +19,3 @@ class Conductor(Base):
     usuario = relationship("Usuario", back_populates="conductor")
 
     cuentas_bancarias = relationship("CuentaBancaria", back_populates="conductor")
-
-    # CAMBIO IMPORTANTE AQUÍ:
-    #vehiculos = relationship(
-        #"Vehiculos",
-       # back_populates="conductor",
-      #  cascade="all, delete-orphan",
-        # Usamos string para decirle explícitamente qué columna en la otra tabla es la llave
-     #   foreign_keys="[Vehiculos.id_conductor]"
-    #)

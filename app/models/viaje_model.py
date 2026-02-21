@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Text, String, TIMESTAMP, ForeignKey, Integer, Numeric, Float, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 import uuid
 
 from app.core.database import Base
@@ -71,4 +72,8 @@ class Viaje(Base):
         JSONB,
         nullable=True
     )
+
+    conductor = relationship("Conductor")
+    pasajero = relationship("Pasajero")
+    acompanante = relationship("Acompanante")
 

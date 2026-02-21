@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 class DestinoItem(BaseModel):
-    direccion: str
+    direccion: str = None
     lat: Optional[float] = None
     lng: Optional[float] = None
     orden: Optional[int] = None
@@ -23,7 +23,7 @@ class CrearViajeSchema(BaseModel):
     check_acompanante: Optional[bool] = None
     id_acompanante: Optional[str] = None
     check_destinos: bool = True
-    destinos: List[DestinoItem]
+    destinos: List[DestinoItem] = None
 
 class ViajeDetalleResponse(BaseModel):
     id_viaje: UUID

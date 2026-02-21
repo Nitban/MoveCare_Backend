@@ -45,3 +45,25 @@ def obtener_historial(
         return historial
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+@router.put("/{id_viaje}/cancelar")
+def cancelar_viaje(
+    id_viaje: str,
+    db: Session = Depends(get_db),
+    user=Depends(require_pasajero)
+):
+    try:
+        ViajeService.cancelar_viaje(
+            db=db,
+            id_viaje=id_viaje,
+            id_usuario=user["id_usuario"]
+        )
+
+        return {
+            "ok": True,
+            "mensaje": "Viaje cancelado exitosamente"
+        }
+
+    except ValueError as e:
+        # Si el viaje no existe o ya estaba cancelado, arrojamos un error 400
+        raise HTTPException(status_code=400, detail=str(e))
