@@ -24,6 +24,10 @@ def agregar_tarjeta(data: MetodoPagoCreate, db: Session = Depends(get_db), user=
 def listar_tarjetas(db: Session = Depends(get_db), user=Depends(require_pasajero)):
     return PagosService.listar_metodos_pago(db, user["id_usuario"])
 
+@router_pagos.delete("/tarjetas/{id_metodo}", status_code=200)
+def eliminar_tarjeta(id_metodo: str, db: Session = Depends(get_db), user=Depends(require_pasajero)):
+    return PagosService.deshabilitar_metodo_pago(db, user["id_usuario"], id_metodo)
+
 # ================= RUTAS CONDUCTOR (CUENTAS) =================
 @router_cobros.post("/cuentas", response_model=CuentaBancariaOut, status_code=201)
 def agregar_cuenta(data: CuentaBancariaCreate, db: Session = Depends(get_db), user=Depends(require_conductor)):

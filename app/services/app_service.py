@@ -106,7 +106,8 @@ class AppService:
                 "nombre_completo": usuario.nombre_completo,
                 "correo": usuario.correo,
                 "rol": usuario.rol,
-                "id_pasajero": str(usuario.pasajero.id_pasajero)
+                "id_pasajero": str(usuario.pasajero.id_pasajero),
+                "activo": usuario.activo
             },
             "viaje_proximo": viaje_data,
             "historial": historial_json

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, Integer, Text, TIMESTAMP
+from sqlalchemy import Column, String, Boolean, Text, TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -12,7 +12,10 @@ class Usuario(Base):
     id_usuario = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     uid_firebase = Column(String, unique=True, nullable=False)     # agregar a BD
     nombre_completo = Column(String, nullable=False)
-    edad = Column(Integer, nullable=False)
+    fecha_nacimiento = Column(
+        TIMESTAMP,
+        server_default=func.now()
+    )
     direccion = Column(Text, nullable=False)
     correo = Column(String, unique=True, nullable=False)
     telefono = Column(String, nullable=False)
