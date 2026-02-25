@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy import Column, String, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
@@ -13,6 +13,7 @@ class MetodoPago(Base):
     token_tarjeta = Column(String, nullable=False)
     ultimos_cuatro = Column(String(4), nullable=False)
     marca = Column(String, nullable=True)
+    activo = Column(Boolean, default=True)
 
     id_pasajero = Column(UUID(as_uuid=True), ForeignKey("pasajero.id_pasajero", ondelete="CASCADE"), nullable=False)
 

@@ -19,7 +19,7 @@ class UsuarioService:
         usuario = Usuario(
             uid_firebase=uid,
             nombre_completo=data.nombre_completo,
-            edad=data.edad,
+            fecha_nacimiento=data.fecha_nacimiento,
             direccion=data.direccion,
             correo=data.correo,
             telefono=data.telefono,

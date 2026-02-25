@@ -15,6 +15,7 @@ class MetodoPagoCreate(MetodoPagoBase):
 class MetodoPagoOut(MetodoPagoBase):
     id_metodo: UUID
     id_pasajero: UUID
+    activo: bool
 
     class Config:
         from_attributes = True

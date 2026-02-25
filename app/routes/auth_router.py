@@ -4,6 +4,10 @@ from app.core.database import get_db
 from app.schemas.auth import RegistroPasajero, RegistroConductor, LoginSchema
 from app.schemas.confirmarCorreo import ConfirmarCorreoRequest
 from app.services.usuario_service import UsuarioService
+from app.core.security import get_current_user
+
+from app.schemas.validacion import ValidacionUsuarioCreate, ValidacionUsuarioResponse
+from app.services.validacion_service import ValidacionService
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -46,6 +50,18 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
         "rol": rol
     }
 
+
+# Agrega esta ruta al final de tus rutas de Auth
+@router.post("/logout")
+def logout(db: Session = Depends(get_db)):
+    # Al usar JWT, no hay una sesión física que destruir en la BD.
+    # En el futuro, aquí puedes agregar lógica para meter el token en una "lista negra" (Redis/DB)
+    # o usar FirebaseAuthService.revocar_tokens(uid) si necesitas forzar el cierre en todos los dispositivos.
+
+    return {
+        "mensaje": "Sesión cerrada correctamente en el servidor."
+    }
+
 @router.post("/confirmar-correo")
 def confirmar_correo(
     data: ConfirmarCorreoRequest,
@@ -60,3 +76,14 @@ def confirmar_correo(
         )
 
     return {"mensaje": "Correo verificado correctamente"}
+
+@router.post("/validacion", response_model=ValidacionUsuarioResponse)
+def subir_documentos_ine(
+    data: ValidacionUsuarioCreate,
+    db: Session = Depends(get_db),
+    user = Depends(get_current_user)
+):
+    try:
+        return ValidacionService.crear_validacion(db, user["id_usuario"], data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

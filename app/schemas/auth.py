@@ -8,7 +8,7 @@ class RegistroBase(BaseModel):
     telefono: str
     password: str
     # Campos que el front NO envía en el registro inicial
-    edad: Optional[int] = None
+    fecha_nacimiento: Optional[int] = None
     direccion: Optional[str] = None
     discapacidad: Optional[str] = None
     foto_ine_base64: Optional[str] = None
