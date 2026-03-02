@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.auth import RegistroPasajero, RegistroConductor, LoginSchema
+from app.schemas.auth import RegistroPasajero, RegistroConductor, LoginSchema, UsuarioUpdate
 from app.schemas.confirmarCorreo import ConfirmarCorreoRequest
 from app.services.usuario_service import UsuarioService
 from app.core.security import get_current_user
@@ -85,5 +85,22 @@ def subir_documentos_ine(
 ):
     try:
         return ValidacionService.crear_validacion(db, user["id_usuario"], data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.put("/actualizar-perfil")
+def actualizar_perfil(
+        data: UsuarioUpdate,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user)  # Obtenemos el usuario del token
+):
+    try:
+        # user["id_usuario"] viene del token JWT
+        UsuarioService.actualizar_perfil(db, user["id_usuario"], data)
+
+        return {
+            "mensaje": "Perfil actualizado correctamente"
+        }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

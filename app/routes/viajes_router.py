@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.dependencies.auth_dependencies import require_pasajero
+from app.dependencies.auth_dependencies import require_pasajero, require_conductor
 from app.schemas.viaje import CrearViajeSchema, ViajeDetalleResponse
 from app.services.viaje_service import ViajeService
 from typing import List
@@ -39,6 +39,21 @@ def obtener_historial(
 ):
     try:
         historial = ViajeService.obtener_historial_pasajero(
+            db=db,
+            id_usuario=user["id_usuario"]
+        )
+        return historial
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/historial-conductor")
+def obtener_historial_conductor(
+    db: Session = Depends(get_db),
+    user = Depends(require_conductor) # 🔥 Solo conductores pueden ver esto
+):
+    try:
+        historial = ViajeService.obtener_historial_conductor(
             db=db,
             id_usuario=user["id_usuario"]
         )

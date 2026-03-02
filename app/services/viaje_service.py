@@ -102,6 +102,44 @@ class ViajeService:
         return resultado
 
     @staticmethod
+    def obtener_historial_conductor(db: Session, id_usuario: str):
+        # 1. Obtener el id_conductor vinculado al id_usuario logueado
+        conductor = db.query(Conductor).filter(Conductor.id_usuario == id_usuario).first()
+        if not conductor:
+            raise ValueError("Conductor no encontrado")
+
+        # 2. Consultar viajes: Viaje -> Pasajero -> Usuario (para nombre y discapacidad)
+        viajes = (
+            db.query(Viaje)
+            .filter(Viaje.id_conductor == conductor.id_conductor)
+            .join(Pasajero, Viaje.id_pasajero == Pasajero.id_pasajero)
+            .join(Usuario, Pasajero.id_usuario == Usuario.id_usuario)
+            .order_by(Viaje.fecha_hora_inicio.desc())
+            .all()
+        )
+
+        resultado = []
+        for v in viajes:
+            # El join con Usuario a través de Pasajero nos da la info del cliente
+            usuario_pasajero = v.pasajero.usuario
+
+            fecha_formateada = v.fecha_hora_inicio.strftime("%d/%m/%Y %H:%M") if v.fecha_hora_inicio else None
+
+            resultado.append({
+                "id_viaje": str(v.id_viaje),
+                "fecha_inicio": fecha_formateada,
+                "punto_inicio": v.punto_inicio,
+                "destino": v.destino or "Múltiples destinos",
+                "estado": v.estado,
+                "costo": v.costo,
+                "nombre_pasajero": usuario_pasajero.nombre_completo,
+                "foto_pasajero": getattr(usuario_pasajero, 'foto_perfil', None),
+                "necesidad_especial": getattr(usuario_pasajero, 'discapacidad', "Ninguna")
+            })
+
+        return resultado
+
+    @staticmethod
     def cancelar_viaje(db: Session, id_viaje: str, id_usuario: str):
         # 1. Obtener el pasajero para validar propiedad
         pasajero = db.query(Pasajero).filter(Pasajero.id_usuario == id_usuario).first()
