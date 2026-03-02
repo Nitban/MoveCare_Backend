@@ -105,6 +105,11 @@ class AppService:
                 "id_usuario": str(usuario.id_usuario),
                 "nombre_completo": usuario.nombre_completo,
                 "correo": usuario.correo,
+                "telefono": usuario.telefono,
+                "direccion": usuario.direccion,
+                "fecha_nacimiento": usuario.fecha_nacimiento,
+                "foto_perfil":usuario.foto_perfil,
+                "discapacidad": usuario.discapacidad,
                 "rol": usuario.rol,
                 "id_pasajero": str(usuario.pasajero.id_pasajero),
                 "activo": usuario.activo
@@ -115,26 +120,105 @@ class AppService:
 
     @staticmethod
     def get_home_conductor(db: Session, id_usuario: str):
-        conductor = db.query(Conductor).filter(
-            Conductor.id_usuario == id_usuario
-        ).first()
+        # 1. Obtenemos el usuario conductor
+        usuario = (
+            db.query(Usuario)
+            .join(Conductor)
+            .filter(Usuario.id_usuario == id_usuario)
+            .first()
+        )
 
-        if not conductor:
-            return {"viaje_proximo": None, "historial": []}
+        if not usuario or not getattr(usuario, 'conductor', None):
+            return {"usuario": None, "viaje_proximo": None, "historial": []}
 
-        ahora = datetime.utcnow()
+        # 2. Obtenemos el viaje próximo (Aquí pides 4 cosas)
+        viaje_proximo_query = (
+            db.query(
+                Viaje,
+                Usuario.nombre_completo.label("nombre_pasajero"),
+                Usuario.discapacidad.label("necesidad_especial"),
+                Usuario.telefono.label("telefono_pasajero")
+            )
+            .join(Pasajero, Pasajero.id_pasajero == Viaje.id_pasajero)
+            .join(Usuario, Usuario.id_usuario == Pasajero.id_usuario)
+            .filter(
+                Viaje.id_conductor == usuario.conductor.id_conductor,
+                Viaje.estado.in_(["Agendado", "En_curso"])
+            )
+            .order_by(Viaje.fecha_hora_inicio.asc())
+            .first()
+        )
 
-        viaje_proximo = db.query(Viaje).filter(
-            Viaje.id_conductor == conductor.id_conductor,
-            Viaje.fecha_hora_inicio >= ahora
-        ).order_by(Viaje.fecha_hora_inicio.asc()).first()
+        # 3. Obtenemos el historial (Faltaba el teléfono en la query)
+        historial_query = (
+            db.query(
+                Viaje,
+                Usuario.telefono.label("telefono_pasajero"),  # <--- Agregado
+                Usuario.nombre_completo.label("nombre_pasajero"),
+                Usuario.discapacidad.label("necesidad_especial")
+            )
+            .join(Pasajero, Pasajero.id_pasajero == Viaje.id_pasajero)
+            .join(Usuario, Usuario.id_usuario == Pasajero.id_usuario)
+            .filter(
+                Viaje.id_conductor == usuario.conductor.id_conductor,
+                Viaje.estado == "Finalizado"
+            )
+            .order_by(Viaje.fecha_hora_inicio.desc())
+            .all()
+        )
 
-        historial = db.query(Viaje).filter(
-            Viaje.id_conductor == conductor.id_conductor,
-            Viaje.fecha_hora_inicio < ahora
-        ).order_by(Viaje.fecha_hora_inicio.desc()).all()
+        # 4. Formateamos el historial a JSON
+        historial_json = []
+        # Ahora sí coinciden las 4 variables con las 4 columnas de la query
+        for viaje, telefono, nombre, necesidad in historial_query:
+            historial_json.append({
+                "id_viaje": str(viaje.id_viaje),
+                "punto_inicio": getattr(viaje, 'punto_inicio', "Desconocido"),
+                "fecha_hora_inicio": viaje.fecha_hora_inicio.isoformat(),
+                "destino": viaje.destino,
+                "estado": viaje.estado,
+                "nombre_pasajero": nombre or "Desconocido",
+                "telefono_pasajero": telefono,
+                "necesidad_especial": necesidad
+            })
 
+        # 5. Formateamos el viaje próximo a JSON
+        viaje_data = None
+        if viaje_proximo_query:
+            # Aquí también corregimos el desempaquetado (antes esperabas 3, pero llegan 4)
+            viaje, nombre, necesidad, telefono = viaje_proximo_query
+
+            viaje_data = {
+                "id_viaje": str(viaje.id_viaje),
+                "punto_inicio": getattr(viaje, 'punto_inicio', "Desconocido"),
+                "destino": viaje.destino,
+                "fecha_hora_inicio": viaje.fecha_hora_inicio.isoformat(),
+                "estado": viaje.estado,
+                "nombre_pasajero": nombre or "Desconocido",
+                "telefono_pasajero": telefono,  # <--- Agregado para que Flutter pueda llamar
+                "necesidad_especial": necesidad,
+                "ruta": getattr(viaje, 'ruta', None),
+                # Agregamos coordenadas si existen en tu modelo para el widget del mapa
+                "lat_inicio": getattr(viaje, 'lat_inicio', None),
+                "lng_inicio": getattr(viaje, 'lng_inicio', None),
+                "lat_destino": getattr(viaje, 'lat_destino', None),
+                "lng_destino": getattr(viaje, 'lng_destino', None),
+            }
+
+        # 6. Estructuramos la respuesta final
         return {
-            "viaje_proximo": viaje_proximo,
-            "historial": historial
+            "usuario": {
+                "id_usuario": str(usuario.id_usuario),
+                "nombre_completo": usuario.nombre_completo,
+                "correo": usuario.correo,
+                "telefono": usuario.telefono,
+                "direccion": usuario.direccion,
+                "fecha_nacimiento": usuario.fecha_nacimiento,
+                "foto_perfil": usuario.foto_perfil,
+                "rol": usuario.rol,
+                "id_conductor": str(usuario.conductor.id_conductor),
+                "activo": usuario.activo
+            },
+            "viaje_proximo": viaje_data,
+            "historial": historial_json
         }

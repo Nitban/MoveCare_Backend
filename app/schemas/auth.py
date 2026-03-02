@@ -8,7 +8,7 @@ class RegistroBase(BaseModel):
     telefono: str
     password: str
     # Campos que el front NO envía en el registro inicial
-    fecha_nacimiento: Optional[int] = None
+    fecha_nacimiento: Optional[str] = None
     direccion: Optional[str] = None
     discapacidad: Optional[str] = None
     foto_ine_base64: Optional[str] = None
@@ -37,3 +37,11 @@ class LoginResponse(BaseModel):
 
 class VerifyEmailRequest(BaseModel):
     id_token: str
+
+class UsuarioUpdate(BaseModel):
+    nombre_completo: Optional[str] = None
+    telefono: Optional[str] = None
+    direccion: Optional[str] = None
+    fecha_nacimiento: Optional[str] = None
+    foto_perfil: Optional[str] = None
+    discapacidad: Optional[str] = None

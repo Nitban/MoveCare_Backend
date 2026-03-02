@@ -172,3 +172,31 @@ class UsuarioService:
         db.commit()
 
         return True, "Correo verificado correctamente"
+
+    @staticmethod
+    def actualizar_perfil(db: Session, id_usuario: str, data):
+        # Buscamos al usuario por su ID
+        usuario = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
+
+        if not usuario:
+            raise Exception("Usuario no encontrado en la base de datos.")
+
+        # Actualizamos dinámicamente solo los campos que vengan en el request
+        if data.nombre_completo is not None:
+            usuario.nombre_completo = data.nombre_completo
+        if data.telefono is not None:
+            usuario.telefono = data.telefono
+        if data.direccion is not None:
+            usuario.direccion = data.direccion
+        if data.fecha_nacimiento is not None:
+            usuario.fecha_nacimiento = data.fecha_nacimiento
+        if data.foto_perfil is not None:
+            usuario.foto_perfil = data.foto_perfil
+        if data.discapacidad is not None:
+            usuario.discapacidad = data.discapacidad
+
+        # Guardamos los cambios
+        db.commit()
+        db.refresh(usuario)
+
+        return usuario
