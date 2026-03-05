@@ -8,3 +8,21 @@ passlib[bcrypt]
 firebase-admin
 python-jose[cryptography]
 
+# ── IA: Asignación de conductores ──
+scipy
+numpy
+
+# ── IA: Rutas (OpenStreetMap) ──
+osmnx
+networkx
+geopandas
+shapely
+
+# ── IA: Reportes ──
+pandas
+plotly
+
+# ── IA: Voz ──
+openai
+python-multipart
+
