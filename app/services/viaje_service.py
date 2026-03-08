@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.viaje_model import Viaje
 from app.models.pasajero_model import Pasajero
 from app.models.conductor_model import Conductor
@@ -165,3 +165,103 @@ class ViajeService:
         db.refresh(viaje)
 
         return viaje
+
+    @staticmethod
+    def obtener_viajes_por_estado_conductor(db: Session, id_usuario: str, estado: str):
+        # 1. Buscamos al conductor que le pertenece este id_usuario
+        conductor = db.query(Conductor).filter(Conductor.id_usuario == id_usuario).first()
+
+        if not conductor:
+            # Si ese usuario no está registrado como conductor, cortamos aquí
+            raise ValueError("No se encontró un conductor asociado a este usuario.")
+
+        # 2. Ahora que tenemos su id_conductor real, buscamos sus viajes
+        viajes = db.query(Viaje).filter(
+            Viaje.id_conductor == conductor.id_conductor,
+            Viaje.estado == estado
+        ).all()
+
+        # 3. Mapeamos la respuesta
+        resultado = []
+        for v in viajes:
+            resultado.append({
+                "id_viaje": v.id_viaje,
+                "punto_inicio": v.punto_inicio,
+                "destino": v.destino,
+                "fecha_inicio": str(v.fecha_hora_inicio) if v.fecha_hora_inicio else "Sin fecha",
+                "nombre_pasajero": v.pasajero.usuario.nombre_completo if v.pasajero else "Desconocido",
+                "estado": v.estado
+            })
+
+        return resultado
+
+    @staticmethod
+    def obtener_viaje_por_id(db: Session, id_viaje: str):
+        # 1. Hacemos el EAGER LOAD con el "doble salto" para el pasajero, y el salto normal para acompañante
+        viaje = db.query(Viaje).options(
+            joinedload(Viaje.pasajero).joinedload(Pasajero.usuario),  # 🔥 Viaje -> Pasajero -> Usuario
+            joinedload(Viaje.acompanante)  # 🔥 Viaje -> Acompanante
+        ).filter(Viaje.id_viaje == id_viaje).first()
+
+        if viaje:
+            # 2. Armamos el diccionario base
+            resultado = {
+                "id_viaje": viaje.id_viaje,
+                "origen": viaje.punto_inicio,
+                "destino": viaje.destino,
+                "ruta_data": viaje.ruta if viaje.ruta else None,
+                # Formateamos la fecha/hora o mandamos un placeholder si viene nula
+                "hora": str(viaje.fecha_hora_inicio) if viaje.fecha_hora_inicio else "--:--",
+                "check_acompanante": viaje.check_acompanante,
+                "pasajero": None,
+                "acompanante": None
+            }
+
+            # 3. Extraemos la info brincando a través de la tabla intermedia
+            if viaje.pasajero and viaje.pasajero.usuario:
+                usr = viaje.pasajero.usuario  # Guardamos el usuario en una variable para que se vea más limpio
+                resultado["pasajero"] = {
+                    "nombre": usr.nombre_completo,
+                    # Usamos la calificación que viene directo en la tabla viaje (o 5.0 por defecto)
+                    "calificacion": str(viaje.cal_pasajero) if viaje.cal_pasajero is not None else "5.0",
+                    "foto_perfil": usr.foto_perfil,
+                    "discapacidad": usr.discapacidad if usr.discapacidad else ""
+                }
+
+            # 4. Extraemos la info del acompañante
+            if viaje.check_acompanante and viaje.acompanante:
+                resultado["acompanante"] = {
+                    "nombre": viaje.acompanante.nombre_completo,
+                    "parentesco": viaje.acompanante.parentesco
+                }
+
+            return resultado
+
+        return None
+
+    @staticmethod
+    def aceptar_viaje(db: Session, id_viaje: str):
+        viaje = db.query(Viaje).filter(Viaje.id_viaje == id_viaje).first()
+        if not viaje:
+            raise ValueError("Viaje no encontrado")
+
+        viaje.estado = 'Agendado'
+        db.commit()
+        return viaje
+
+    @staticmethod
+    def liberar_viaje(db: Session, id_viaje: str):
+        viaje = db.query(Viaje).filter(Viaje.id_viaje == id_viaje).first()
+        if not viaje:
+            raise ValueError("Viaje no encontrado")
+
+        # Eliminamos al conductor del viaje y lo regresamos a 'Pendiente'
+        # para que la futura IA u otro conductor lo pueda tomar.
+        viaje.id_conductor = None
+        viaje.estado = 'Pendiente'
+        db.commit()
+        return viaje
+
+
+
+
