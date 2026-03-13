@@ -20,7 +20,6 @@ class RegistroPasajero(RegistroBase):
 
 class RegistroConductor(RegistroBase):
     rol: str = "conductor"
-    licencia_base64: Optional[str] = None
 
 
 class LoginSchema(BaseModel):
@@ -45,3 +44,8 @@ class UsuarioUpdate(BaseModel):
     fecha_nacimiento: Optional[str] = None
     foto_perfil: Optional[str] = None
     discapacidad: Optional[str] = None
+
+class RegistroAdmin(BaseModel):
+    nombre_completo: str
+    correo: EmailStr
+    password: str

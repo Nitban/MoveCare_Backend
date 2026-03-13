@@ -14,7 +14,6 @@ class Conductor(Base):
         ForeignKey("usuario.id_usuario", ondelete="CASCADE"),
         nullable=False
     )
-    licencia_conduccion = Column(Text, nullable=False)
 
     usuario = relationship("Usuario", back_populates="conductor")
 

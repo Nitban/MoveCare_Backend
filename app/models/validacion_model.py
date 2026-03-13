@@ -14,3 +14,6 @@ class ValidacionUsuario(Base):
     fecha_revision = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     ine_frente = Column(Text, nullable=False)
     ine_reverso = Column(Text, nullable=False)
+    licencia_frente = Column(Text, nullable=True)
+    licencia_reverso = Column(Text, nullable=True)
+    poliza = Column(Text, nullable=True)
