@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.usuario_model import Usuario
 from app.models.pasajero_model import Pasajero
 from app.models.conductor_model import Conductor
+from app.models.administrador_model import Administrador
 from app.services.firebase_service import FirebaseAuthService
 from app.core.security import crear_jwt
 from app.services.email_service import EmailService
@@ -38,7 +39,6 @@ class UsuarioService:
         if is_conductor:
             conductor = Conductor(
                 id_usuario=usuario.id_usuario,
-                licencia_conduccion=data.licencia_base64
             )
             db.add(conductor)
         else:
@@ -131,7 +131,7 @@ class UsuarioService:
           ##  return None, "Tu cuenta aún no ha sido aprobada por los administradores."
 
         payload = {
-            "sub": str(usuario.id_usuario),  # 🔥 FIX
+            "sub": str(usuario.id_usuario),
             "uid": usuario.uid_firebase,
             "correo": usuario.correo,
             "rol": usuario.rol
@@ -199,4 +199,37 @@ class UsuarioService:
         db.commit()
         db.refresh(usuario)
 
+        return usuario
+
+    @staticmethod
+    async def crear_admin(db: Session, data):
+        # 1. Crear usuario en Firebase Auth
+        uid = FirebaseAuthService.crear_usuario(data.correo, data.password)
+
+        # 2. Crear usuario en Supabase
+        usuario = Usuario(
+            uid_firebase=uid,
+            nombre_completo=data.nombre_completo,
+            correo=data.correo,
+            # Llenamos los campos obligatorios con valores dummy para que la BD no arroje error
+            telefono="N/A",
+            direccion="N/A",
+            foto_ine="N/A",
+            foto_ine_reverso="N/A",
+            foto_perfil="N/A",
+            rol="administrador",
+            activo=True,  # Ya está activo por defecto
+            autentificado=True  # Ya está verificado, no mandamos correo
+        )
+
+        db.add(usuario)
+        db.commit()
+        db.refresh(usuario)
+
+        # 3. Crear entidad Administrador
+        admin = Administrador(id_usuario=usuario.id_usuario)
+        db.add(admin)
+        db.commit()
+
+        # No enviamos correo. Retornamos el usuario.
         return usuario
