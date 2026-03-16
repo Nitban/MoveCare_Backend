@@ -25,7 +25,6 @@ class Usuario(Base):
     foto_perfil = Column(Text, nullable=False)
     fecha_registro = Column(TIMESTAMP, server_default=func.now())
 
-    # Usa strings para evitar errores de carga
     conductor = relationship("Conductor", back_populates="usuario", uselist=False)
     pasajero = relationship("Pasajero", back_populates="usuario", uselist=False)
-
+    administrador = relationship("Administrador", back_populates="usuario", uselist=False)

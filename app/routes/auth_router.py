@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+import os
+
+from fastapi import APIRouter, Depends, HTTPException, Security, status
+from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.auth import RegistroPasajero, RegistroConductor, LoginSchema, UsuarioUpdate
+from app.schemas.auth import RegistroPasajero, RegistroConductor, LoginSchema, UsuarioUpdate, RegistroAdmin
 from app.schemas.confirmarCorreo import ConfirmarCorreoRequest
 from app.services.usuario_service import UsuarioService
 from app.core.security import get_current_user
@@ -11,6 +14,17 @@ from app.services.validacion_service import ValidacionService
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
+API_KEY_NAME = "X-Admin-API-Key"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+SECRET_ADMIN_KEY = os.getenv("SECRET_ADMIN_API_KEY", "MoveCareAdminSecretKey_2026_!")
+
+def verificar_api_key(api_key: str = Security(api_key_header)):
+    if api_key != SECRET_ADMIN_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado"
+        )
+    return api_key
 
 @router.post("/registro/pasajero")
 async def registrar_pasajero(data: RegistroPasajero, db: Session = Depends(get_db)):
@@ -35,7 +49,6 @@ async def registrar_conductor(data: RegistroConductor, db: Session = Depends(get
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
 @router.post("/login")
 def login(data: LoginSchema, db: Session = Depends(get_db)):
     token, msg, rol = UsuarioService.login(db, data.correo, data.password)
@@ -49,7 +62,6 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
         "token": token,
         "rol": rol
     }
-
 
 # Agrega esta ruta al final de tus rutas de Auth
 @router.post("/logout")
@@ -88,7 +100,6 @@ def subir_documentos_ine(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
 @router.put("/actualizar-perfil")
 def actualizar_perfil(
         data: UsuarioUpdate,
@@ -101,6 +112,21 @@ def actualizar_perfil(
 
         return {
             "mensaje": "Perfil actualizado correctamente"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/registro/admin-oculto", include_in_schema=False)
+async def registrar_admin_oculto(
+    data: RegistroAdmin,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verificar_api_key)  # Exige el header con la clave
+):
+    try:
+        usuario = await UsuarioService.crear_admin(db, data)
+        return {
+            "mensaje": f"Administrador {usuario.correo} creado y activado exitosamente.",
+            "id_usuario": usuario.id_usuario
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
