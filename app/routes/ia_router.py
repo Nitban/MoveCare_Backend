@@ -9,6 +9,7 @@ Endpoints:
   POST /ia/rutas/calcular               → Calcula ruta óptima entre dos puntos (OSMnx)
   POST /ia/rutas/optimizar              → Ordena múltiples paradas de forma óptima
   GET  /ia/rutas/viaje/{id_viaje}       → Calcula ruta para un viaje existente en BD
+  GET  /ia/reportes/conductor           → Métricas estadísticas del conductor autenticado
 """
 
 from uuid import UUID
@@ -19,6 +20,7 @@ from pydantic import BaseModel, Field
 from scipy.optimize import linear_sum_assignment
 from sqlalchemy.orm import Session
 
+from app.ai.reportes.reportes_service import obtener_metricas_conductor
 from app.ai.rutas.rutas_service import (
     calcular_ruta,
     calcular_ruta_viaje,
@@ -375,3 +377,28 @@ def ruta_para_viaje(
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al calcular ruta del viaje: {str(e)}")
+
+
+# ── MÓDULO 3: REPORTES ESTADÍSTICOS ──────────────────────────────────────────
+
+@router.get("/reportes/conductor", summary="Métricas estadísticas del conductor")
+def metricas_conductor(
+    db: Session = Depends(get_db),
+    user=Depends(require_conductor),
+):
+    """
+    Devuelve métricas reales calculadas con pandas a partir del historial
+    de viajes del conductor autenticado.
+
+    Incluye:
+    - KPIs: total viajes, km recorridos, calificación promedio, ganancias totales
+    - viajes_semana: conteo L-D de la semana actual
+    - ganancias_semanas: ganancias por semana del mes actual (5 semanas)
+    - estados: porcentajes completados / cancelados / en_curso
+    - resumen: tabla con métricas detalladas y mejor día
+    """
+    try:
+        metricas = obtener_metricas_conductor(db, user["id_usuario"])
+        return {"ok": True, **metricas}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al calcular métricas: {str(e)}")
