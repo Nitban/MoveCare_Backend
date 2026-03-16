@@ -17,6 +17,7 @@ osmnx
 networkx
 geopandas
 shapely
+scikit-learn
 
 # ── IA: Reportes ──
 pandas
