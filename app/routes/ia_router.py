@@ -402,3 +402,23 @@ def metricas_conductor(
         return {"ok": True, **metricas}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al calcular métricas: {str(e)}")
+
+
+@router.get("/demo/metricas", summary="[DEMO] Métricas del conductor de prueba (sin auth)")
+def demo_metricas(db: Session = Depends(get_db)):
+    """
+    Endpoint público para demo en vivo. Devuelve métricas reales del conductor
+    de prueba (Carlos Ramírez) insertado por seed_metricas.py.
+
+    No requiere autenticación. Solo para presentación/desarrollo.
+    """
+    ID_COND_1 = "cccccccc-0001-0001-0001-000000000001"
+    try:
+        metricas = obtener_metricas_conductor(db, ID_COND_1)
+        return {
+            "ok": True,
+            "nota": "Demo con datos de prueba — conductor: Carlos Ramírez",
+            **metricas,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en demo de métricas: {str(e)}")
