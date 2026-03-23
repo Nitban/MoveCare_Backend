@@ -3,6 +3,7 @@ from sqlalchemy import or_
 from app.models.viaje_model import Viaje
 from app.models.pasajero_model import Pasajero
 from app.models.conductor_model import Conductor
+from app.models.administrador_model import Administrador
 from app.models.usuario_model import Usuario
 from datetime import datetime
 
@@ -205,4 +206,42 @@ class AppService:
             },
             "viaje_proximo": viaje_data,
             "historial": historial_json
+        }
+
+    @staticmethod
+    def get_home_administrador(db: Session, id_usuario: str):  # Cambiamos el nombre del parámetro por claridad
+        # 1. Buscar al administrador por su id_usuario (que es el que viene del token)
+        administrador = (
+            db.query(Administrador)
+            .filter(Administrador.id_usuario == id_usuario)  # <-- EL CAMBIO CLAVE ESTÁ AQUÍ
+            .first()
+        )
+
+        if not administrador:
+            return {"usuario": None, "error": "Administrador no encontrado"}
+
+        # 2. Ahora buscamos la información del Usuario
+        usuario = (
+            db.query(Usuario)
+            .filter(Usuario.id_usuario == id_usuario)  # Podemos usar directamente el id_usuario
+            .first()
+        )
+
+        if not usuario:
+            return {"usuario": None, "error": "Usuario asociado no encontrado"}
+
+        # 3. Retornar la información formateada
+        return {
+            "usuario": {
+                "id_usuario": str(usuario.id_usuario),
+                "nombre_completo": usuario.nombre_completo,  # 1. Cambiamos la llave a "nombre"
+                "correo": usuario.correo,
+                "telefono": usuario.telefono,
+                "direccion": usuario.direccion,
+                "fecha_nacimiento": usuario.fecha_nacimiento.isoformat() if usuario.fecha_nacimiento else None,
+                "foto_perfil": usuario.foto_perfil if usuario.foto_perfil and usuario.foto_perfil != "N/A" else "",
+                "rol": usuario.rol,
+                "id_administrador": str(administrador.id_administrador),
+                "activo": usuario.activo
+            }
         }

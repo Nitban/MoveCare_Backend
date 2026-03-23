@@ -24,3 +24,22 @@ class ValidacionUsuarioResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class UsuarioResumen(BaseModel):
+    id_usuario: UUID
+    nombre: str  # Asumo que tienes un campo nombre en tu modelo de Usuario
+    rol: str
+
+    class Config:
+        from_attributes = True
+
+class ValidacionPendienteItem(BaseModel):
+    validacion: ValidacionUsuarioResponse
+    usuario: UsuarioResumen
+
+class ValidacionesPendientesResponse(BaseModel):
+    pasajeros: list[ValidacionPendienteItem]
+    conductores: list[ValidacionPendienteItem]
+
+class RechazoValidacionRequest(BaseModel):
+    motivo_rechazo: str
