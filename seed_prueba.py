@@ -1,5 +1,5 @@
 """
-Script de datos de prueba para validar la IA de asignación de conductores.
+Script de datos de prueba para validar la IA de asignación de conductores
 
 Inserta en Supabase:
   - 1 usuario administrador
@@ -9,13 +9,6 @@ Inserta en Supabase:
   - 2 ubicaciones GPS de conductores (en Guadalajara)
   - 2 viajes en estado Pendiente
 
-IMPORTANTE: Los usuarios NO se crean en Firebase, solo en la BD local.
-Úsalos únicamente para probar la asignación de IA.
-
-Para limpiar los datos insertados al terminar:
-  python seed_prueba.py --limpiar
-
-Ejecutar desde: C:\\Users\\alelo\\ai-movecare\\backend
 """
 
 import sys
@@ -39,6 +32,7 @@ from app.models.viaje_model import Viaje
 from app.models.ubicacion_model import UbicacionConductor
 from app.models.pagos_model import CuentaBancaria, MetodoPago  # necesario para resolver relaciones SQLAlchemy
 from app.models.acompanante_model import Acompanante
+from app.models.administrador_model import Administrador  # necesario para resolver relación en Usuario
 
 # ─────────────────────────────────────────────────
 # IDs fijos para poder limpiar después
@@ -172,9 +166,9 @@ def insertar():
 
         # ── Conductores ───────────────────────────
         conductores = [
-            Conductor(id_conductor=ID_COND_1_PERFIL, id_usuario=ID_COND_1, licencia_conduccion="seed-lic-001"),
-            Conductor(id_conductor=ID_COND_2_PERFIL, id_usuario=ID_COND_2, licencia_conduccion="seed-lic-002"),
-            Conductor(id_conductor=ID_COND_3_PERFIL, id_usuario=ID_COND_3, licencia_conduccion="seed-lic-003"),
+            Conductor(id_conductor=ID_COND_1_PERFIL, id_usuario=ID_COND_1),
+            Conductor(id_conductor=ID_COND_2_PERFIL, id_usuario=ID_COND_2),
+            Conductor(id_conductor=ID_COND_3_PERFIL, id_usuario=ID_COND_3),
         ]
         for c in conductores:
             db.merge(c)

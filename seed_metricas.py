@@ -20,10 +20,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.core.database import SessionLocal
+from app.models.usuario_model import Usuario
+from app.models.conductor_model import Conductor
+from app.models.pasajero_model import Pasajero
+from app.models.administrador_model import Administrador
+from app.models.acompanante_model import Acompanante
+from app.models.pagos_model import CuentaBancaria, MetodoPago
 from app.models.viaje_model import Viaje
 
-# ─── IDs del seed_prueba.py (conductor Carlos Ramírez) ───────────────────────
-ID_COND_1_PERFIL   = uuid.UUID("eeeeeeee-0001-0001-0001-000000000001")
+# ─── Correo del usuario real a usar como conductor ───────────────────────────
+CORREO_CONDUCTOR = "alejandralomeli2712@gmail.com"
+
+# IDs fijos de pasajero de referencia (del seed_prueba)
 ID_PASAJERO_PERFIL = uuid.UUID("dddddddd-0001-0001-0001-000000000001")
 
 # IDs fijos para poder limpiar
@@ -43,6 +51,30 @@ def insertar():
     db = SessionLocal()
     try:
         print("\n📊 Insertando datos de métricas de prueba...\n")
+
+        # ── Buscar usuario real por correo ────────────────────────────────────
+        usuario = db.query(Usuario).filter(Usuario.correo == CORREO_CONDUCTOR).first()
+        if not usuario:
+            print(f"  ERROR: No se encontró el usuario con correo '{CORREO_CONDUCTOR}'")
+            print("  Asegúrate de que la cuenta existe en la base de datos.")
+            return
+
+        print(f"  ✓ Usuario encontrado: {usuario.nombre_completo} ({usuario.correo})")
+
+        # ── Obtener o crear perfil de conductor ───────────────────────────────
+        conductor = db.query(Conductor).filter(
+            Conductor.id_usuario == usuario.id_usuario
+        ).first()
+
+        if not conductor:
+            conductor = Conductor(id_usuario=usuario.id_usuario)
+            db.add(conductor)
+            db.flush()
+            print(f"  ✓ Perfil de conductor creado para {usuario.nombre_completo}")
+        else:
+            print(f"  ✓ Perfil de conductor existente encontrado")
+
+        id_conductor = conductor.id_conductor
 
         hoy = datetime.now()
         viajes_insertados = 0
@@ -79,7 +111,7 @@ def insertar():
             viaje = Viaje(
                 id_viaje=vid,
                 id_pasajero=ID_PASAJERO_PERFIL,
-                id_conductor=ID_COND_1_PERFIL,
+                id_conductor=id_conductor,
                 punto_inicio=ruta_data["origen"],
                 destino=ruta_data["destino"],
                 fecha_hora_inicio=fecha,

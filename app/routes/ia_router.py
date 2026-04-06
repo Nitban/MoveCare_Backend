@@ -412,13 +412,18 @@ def demo_metricas(db: Session = Depends(get_db)):
 
     No requiere autenticación. Solo para presentación/desarrollo.
     """
-    ID_COND_1 = "cccccccc-0001-0001-0001-000000000001"
+    CORREO_DEMO = "alejandralomeli2712@gmail.com"
     try:
-        metricas = obtener_metricas_conductor(db, ID_COND_1)
+        usuario = db.query(Usuario).filter(Usuario.correo == CORREO_DEMO).first()
+        if not usuario:
+            raise HTTPException(status_code=404, detail=f"Usuario demo no encontrado ({CORREO_DEMO}). Ejecuta seed_metricas.py primero.")
+        metricas = obtener_metricas_conductor(db, str(usuario.id_usuario))
         return {
             "ok": True,
-            "nota": "Demo con datos de prueba — conductor: Carlos Ramírez",
+            "nota": f"Demo con datos reales — conductor: {usuario.nombre_completo}",
             **metricas,
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en demo de métricas: {str(e)}")
