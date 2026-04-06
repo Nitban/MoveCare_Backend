@@ -80,9 +80,9 @@ def demo_voz(payload: ComandoVozPayload):
     **Endpoint público** para probar el módulo de voz sin autenticación.
 
     Ejemplos de comandos para probar:
-    - `"Quiero un viaje"`
+    - `"Quiero un viaje al hospital mañana a las 10"`
     - `"Ver mi historial de viajes"`
-    - `"Agregar acompañante"`
+    - `"Agregar acompañante, se llama María García, es mi hija"`
     - `"Quiero ir primero a la farmacia, luego al hospital y después al mercado"`
     - `"Cancela mi viaje"`
     - `"Mis métodos de pago"`
