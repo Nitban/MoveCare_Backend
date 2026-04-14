@@ -6,6 +6,7 @@ from sqlalchemy.orm import configure_mappers
 from app.routes import auth_router, vehiculo_router, usuario_router, app_router, viajes_router, acompanante_router, pagos_router, validacion_router
 from app.routes import ia_router
 from app.routes import voz_router
+from app.routes import combustible_router
 
 try:
     configure_mappers()
@@ -46,6 +47,7 @@ app.include_router(pagos_router.router_cobros)
 app.include_router(validacion_router.router)
 app.include_router(ia_router.router)
 app.include_router(voz_router.router)
+app.include_router(combustible_router.router)
 
 # ============================
 # Root endpoint
