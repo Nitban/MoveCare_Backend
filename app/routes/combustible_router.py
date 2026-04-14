@@ -39,7 +39,7 @@ class RegistrarCargaPayload(BaseModel):
 
 def _id_conductor(user: dict, db: Session) -> str:
     conductor = db.query(Conductor).filter(
-        Conductor.id_usuario == user["uid"]
+        Conductor.id_usuario == user["id_usuario"]
     ).first()
     if not conductor:
         raise HTTPException(status_code=404, detail="Conductor no encontrado")
