@@ -198,7 +198,6 @@ class ViajeService:
     @staticmethod
     def obtener_viaje_por_id(db: Session, id_viaje: str):
         # 1. Hacemos el EAGER LOAD con el "doble salto" para el pasajero, y el salto normal para acompañante
-        # Gracias al joinedload, ya tenemos acceso a la tabla Pasajero y Usuario sin hacer queries extra
         viaje = db.query(Viaje).options(
             joinedload(Viaje.pasajero).joinedload(Pasajero.usuario),  # Viaje -> Pasajero -> Usuario
             joinedload(Viaje.acompanante)  # Viaje -> Acompanante
@@ -213,6 +212,7 @@ class ViajeService:
                 "origen": viaje.punto_inicio,
                 "destino": viaje.destino,
                 "ruta_data": viaje.ruta if viaje.ruta else None,
+                # Formateamos la fecha/hora o mandamos un placeholder si viene nula
                 "hora": str(viaje.fecha_hora_inicio) if viaje.fecha_hora_inicio else "--:--",
                 "check_acompanante": viaje.check_acompanante,
                 "pasajero": None,
@@ -225,6 +225,7 @@ class ViajeService:
                 resultado["pasajero"] = {
                     "id_usuario": usr.id_usuario,  # 🔥 También incluimos el id_usuario
                     "nombre": usr.nombre_completo,
+                    # Usamos la calificación que viene directo en la tabla viaje (o 5.0 por defecto)
                     "calificacion": str(viaje.cal_pasajero) if viaje.cal_pasajero is not None else "5.0",
                     "foto_perfil": usr.foto_perfil,
                     "discapacidad": usr.discapacidad if usr.discapacidad else ""
