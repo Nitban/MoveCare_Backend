@@ -135,3 +135,23 @@ def obtener_viaje_actual(id_viaje: str, db: Session = Depends(get_db)):
         return viaje
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{id_viaje}/detalle")
+def obtener_detalle_viaje(
+        id_viaje: str,
+        db: Session = Depends(get_db)
+        # user = Depends(require_pasajero) # Descomenta si quieres proteger la ruta
+):
+    try:
+        viaje_data = ViajeService.obtener_viaje_por_id(db, id_viaje)
+
+        if not viaje_data:
+            raise HTTPException(status_code=404, detail="Viaje no encontrado")
+
+        return {
+            "ok": True,
+            "data": viaje_data
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener el viaje: {str(e)}")

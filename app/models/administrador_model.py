@@ -12,3 +12,4 @@ class Administrador(Base):
     id_usuario = Column(UUID(as_uuid=True), ForeignKey("usuario.id_usuario"), nullable=False)
 
     usuario = relationship("Usuario", back_populates="administrador")
+    reporte = relationship("Reporte", back_populates="administrador")

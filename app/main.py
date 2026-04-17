@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import app.models
 from app.core.database import engine, Base
 from sqlalchemy.orm import configure_mappers
-from app.routes import auth_router, vehiculo_router, usuario_router, app_router, viajes_router, acompanante_router, pagos_router, validacion_router, auditoria_router
+from app.routes import auth_router, vehiculo_router, usuario_router, app_router, viajes_router, acompanante_router, pagos_router, validacion_router, auditoria_router, reportes_router
 
 try:
     configure_mappers()
@@ -43,6 +43,7 @@ app.include_router(pagos_router.router_pagos)
 app.include_router(pagos_router.router_cobros)
 app.include_router(validacion_router.router)
 app.include_router(auditoria_router.router)
+app.include_router(reportes_router.router)
 
 # ============================
 # Root endpoint
