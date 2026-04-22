@@ -55,6 +55,16 @@ _PATRONES_INTENCION = {
         r"pide\s+un\s+carro",
         r"pedir\s+carro",
         r"quiero\s+ir",
+        r"agendar\s+(un\s+)?viaje",
+        r"programar\s+(un\s+)?viaje",
+        r"quiero\s+viajar",
+        r"necesito\s+transporte",
+        r"pide\s+(un\s+)?viaje",
+        r"un\s+viaje",
+        r"necesito\s+(un\s+)?carro",
+        r"quiero\s+(un\s+)?carro",
+        r"^viaje$",
+        r"^agendar$",
     ],
     "cancelar_viaje": [
         r"cancela\s+(mi\s+)?viaje",
@@ -79,13 +89,30 @@ _PATRONES_INTENCION = {
         r"ver\s+mis\s+viajes",
         r"viajes\s+que\s+he\s+hecho",
         r"viajes\s+realizados",
+        r"mis\s+viajes",
+        r"mi\s+historial",
+        r"ver\s+historial",
+        r"historial\s+de\s+viajes",
+    ],
+    "ver_perfil": [
+        r"\bperfil\b",
+        r"mi\s+perfil",
+        r"ver\s+(mi\s+)?perfil",
+        r"mis\s+datos",
+        r"mi\s+cuenta",
+        r"mi\s+informaci[oó]n",
+        r"datos\s+personales",
     ],
     "crear_acompanante": [
         r"agregar\s+(un\s+)?acompa[nñ]ante",
+        r"agrega\s+(un\s+)?acompa[nñ]ante",
         r"a[nñ]adir\s+(un\s+)?acompa[nñ]ante",
         r"nuevo\s+acompa[nñ]ante",
         r"registrar\s+(un\s+)?acompa[nñ]ante",
+        r"registra\s+(un\s+)?acompa[nñ]ante",
         r"crear\s+(un\s+)?acompa[nñ]ante",
+        r"crea\s+(un\s+)?acompa[nñ]ante",
+        r"acompa[nñ]ante\b",
     ],
     "ver_acompanantes": [
         r"mis\s+acompa[nñ]antes",
@@ -424,6 +451,9 @@ def _generar_respuesta_voz(intencion: str, entidades: dict) -> str:
     if intencion == "ver_home":
         return "Regresando al inicio."
 
+    if intencion == "ver_perfil":
+        return "Aquí está tu perfil."
+
     if intencion == "confirmar":
         return "Entendido, confirmando."
 
@@ -483,6 +513,7 @@ _PANTALLAS = {
     "ver_acompanantes": "mis_acompanantes",
     "ver_pagos": "metodos_pago",
     "ver_home": "home",
+    "ver_perfil": "perfil",
     "confirmar": "confirmar",
     "cancelar_accion": "cancelar_accion",
     "ir_atras": "ir_atras",
