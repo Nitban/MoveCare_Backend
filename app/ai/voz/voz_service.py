@@ -55,6 +55,16 @@ _PATRONES_INTENCION = {
         r"pide\s+un\s+carro",
         r"pedir\s+carro",
         r"quiero\s+ir",
+        r"agendar\s+(un\s+)?viaje",
+        r"programar\s+(un\s+)?viaje",
+        r"quiero\s+viajar",
+        r"necesito\s+transporte",
+        r"pide\s+(un\s+)?viaje",
+        r"un\s+viaje",
+        r"necesito\s+(un\s+)?carro",
+        r"quiero\s+(un\s+)?carro",
+        r"^viaje$",
+        r"^agendar$",
     ],
     "cancelar_viaje": [
         r"cancela\s+(mi\s+)?viaje",
@@ -79,13 +89,30 @@ _PATRONES_INTENCION = {
         r"ver\s+mis\s+viajes",
         r"viajes\s+que\s+he\s+hecho",
         r"viajes\s+realizados",
+        r"mis\s+viajes",
+        r"mi\s+historial",
+        r"ver\s+historial",
+        r"historial\s+de\s+viajes",
+    ],
+    "ver_perfil": [
+        r"\bperfil\b",
+        r"mi\s+perfil",
+        r"ver\s+(mi\s+)?perfil",
+        r"mis\s+datos",
+        r"mi\s+cuenta",
+        r"mi\s+informaci[oó]n",
+        r"datos\s+personales",
     ],
     "crear_acompanante": [
         r"agregar\s+(un\s+)?acompa[nñ]ante",
+        r"agrega\s+(un\s+)?acompa[nñ]ante",
         r"a[nñ]adir\s+(un\s+)?acompa[nñ]ante",
         r"nuevo\s+acompa[nñ]ante",
         r"registrar\s+(un\s+)?acompa[nñ]ante",
+        r"registra\s+(un\s+)?acompa[nñ]ante",
         r"crear\s+(un\s+)?acompa[nñ]ante",
+        r"crea\s+(un\s+)?acompa[nñ]ante",
+        r"acompa[nñ]ante\b",
     ],
     "ver_acompanantes": [
         r"mis\s+acompa[nñ]antes",
@@ -110,6 +137,99 @@ _PATRONES_INTENCION = {
         r"men[uú]\s+principal",
         r"regresar\s+al\s+inicio",
         r"ir\s+al\s+inicio",
+    ],
+    # ── Confirmación / Cancelación de acción ──────────────────────────────
+    "confirmar": [
+        r"^s[ií]$",
+        r"^ok$",
+        r"^dale$",
+        r"^listo$",
+        r"^correcto$",
+        r"s[ií]\s+confirmo",
+        r"aceptar",
+        r"confirmar",
+        r"proceder",
+        r"adelante",
+        r"s[ií]\s+por\s+favor",
+        r"s[ií]\s+quiero",
+    ],
+    "cancelar_accion": [
+        r"^no$",
+        r"^no\s+gracias$",
+        r"cancelar\s+esto",
+        r"cancelar\s+la\s+acci[oó]n",
+        r"mejor\s+no",
+        r"lo\s+dejo",
+    ],
+    # ── Navegación ────────────────────────────────────────────────────────
+    "ir_atras": [
+        r"regresar",
+        r"volver",
+        r"atr[aá]s",
+        r"salir\s+de\s+aqu[ií]",
+        r"salir\s+de\s+esta\s+pantalla",
+        r"ir\s+atr[aá]s",
+        r"volver\s+atr[aá]s",
+        r"cerrar\s+esta\s+pantalla",
+    ],
+    # ── Historial ─────────────────────────────────────────────────────────
+    "filtrar_completados": [
+        r"(?:mostrar|ver|filtrar|solo)\s+(?:los\s+)?(?:viajes\s+)?completados",
+        r"viajes\s+completados",
+        r"(?:los\s+)?completados",
+    ],
+    "filtrar_cancelados": [
+        r"(?:mostrar|ver|filtrar|solo)\s+(?:los\s+)?(?:viajes\s+)?cancelados",
+        r"viajes\s+cancelados",
+        r"(?:los\s+)?cancelados",
+    ],
+    "filtrar_todos": [
+        r"(?:mostrar|ver)\s+todos",
+        r"todos\s+los\s+viajes",
+        r"quitar\s+filtro",
+        r"sin\s+filtro",
+        r"ver\s+todo",
+    ],
+    # ── Agendamiento ──────────────────────────────────────────────────────
+    "establecer_origen": [
+        r"(?:mi\s+)?origen\s+es",
+        r"salgo\s+desde",
+        r"saliendo\s+desde",
+        r"vengo\s+de",
+        r"estoy\s+en",
+        r"me\s+encuentro\s+en",
+    ],
+    "establecer_destino": [
+        r"(?:el\s+)?destino\s+es",
+        r"quiero\s+ir\s+a",
+        r"ll[eé]vame\s+a",
+        r"me\s+llevo\s+a",
+        r"ir\s+(?:al?|hasta)\s+",
+    ],
+    "agregar_parada": [
+        r"agregar\s+parada",
+        r"a[nñ]adir\s+parada",
+        r"agrega\s+(?:una\s+)?parada",
+        r"parar\s+(?:también\s+)?en",
+        r"tambi[eé]n\s+(?:ir\s+)?a",
+        r"pasando\s+por",
+    ],
+    "quitar_parada": [
+        r"quitar\s+(?:la\s+[uú]ltima\s+)?parada",
+        r"eliminar\s+(?:la\s+[uú]ltima\s+)?parada",
+        r"borrar\s+parada",
+        r"[uú]ltima\s+parada\s+no",
+        r"quita\s+(?:esa\s+)?parada",
+    ],
+    # ── Reporte ───────────────────────────────────────────────────────────
+    "enviar_reporte": [
+        r"enviar\s+reporte",
+        r"mandar\s+reporte",
+        r"confirmar\s+reporte",
+        r"reportar\s+el\s+problema",
+        r"enviar\s+incidencia",
+        r"mandar\s+la\s+queja",
+        r"enviar\s+la\s+queja",
     ],
 }
 
@@ -250,6 +370,20 @@ def _extraer_destinos_multiples(texto: str) -> list[str]:
     return destinos
 
 
+def _extraer_parada(texto: str) -> Optional[str]:
+    """Extrae la parada a agregar en viajes múltiples."""
+    patrones = [
+        r"(?:parada\s+en|parar\s+en|pasando\s+por|también\s+ir\s+a|también\s+a|también\s+a)\s+([a-záéíóúüñ\s]+?)(?:\s*(?:,|$))",
+        r"(?:agregar|añadir|agrega|añade)\s+(?:(?:una\s+)?parada\s+(?:en|a)?\s+)?([a-záéíóúüñ\s]{3,40})(?:\s*(?:,|$))",
+    ]
+    texto_norm = texto.lower()
+    for patron in patrones:
+        m = re.search(patron, texto_norm)
+        if m:
+            return m.group(1).strip().title()
+    return None
+
+
 def _extraer_nombre_acompanante(texto: str) -> Optional[str]:
     """Extrae el nombre del acompañante."""
     patrones = [
@@ -317,6 +451,51 @@ def _generar_respuesta_voz(intencion: str, entidades: dict) -> str:
     if intencion == "ver_home":
         return "Regresando al inicio."
 
+    if intencion == "ver_perfil":
+        return "Aquí está tu perfil."
+
+    if intencion == "confirmar":
+        return "Entendido, confirmando."
+
+    if intencion == "cancelar_accion":
+        return "Cancelado."
+
+    if intencion == "ir_atras":
+        return "Regresando a la pantalla anterior."
+
+    if intencion == "filtrar_completados":
+        return "Mostrando solo viajes completados."
+
+    if intencion == "filtrar_cancelados":
+        return "Mostrando solo viajes cancelados."
+
+    if intencion == "filtrar_todos":
+        return "Mostrando todos los viajes."
+
+    if intencion == "establecer_origen":
+        origen = entidades.get("origen")
+        if origen:
+            return f"Origen establecido: {origen}."
+        return "¿Desde dónde sales?"
+
+    if intencion == "establecer_destino":
+        destino = entidades.get("destino")
+        if destino:
+            return f"Destino establecido: {destino}."
+        return "¿A dónde quieres ir?"
+
+    if intencion == "agregar_parada":
+        parada = entidades.get("parada")
+        if parada:
+            return f"Parada agregada: {parada}."
+        return "¿En qué lugar quieres hacer una parada?"
+
+    if intencion == "quitar_parada":
+        return "Última parada eliminada."
+
+    if intencion == "enviar_reporte":
+        return "Enviando tu reporte."
+
     return "Lo siento, no entendí bien. ¿Puedes repetirlo?"
 
 
@@ -334,6 +513,18 @@ _PANTALLAS = {
     "ver_acompanantes": "mis_acompanantes",
     "ver_pagos": "metodos_pago",
     "ver_home": "home",
+    "ver_perfil": "perfil",
+    "confirmar": "confirmar",
+    "cancelar_accion": "cancelar_accion",
+    "ir_atras": "ir_atras",
+    "filtrar_completados": "filtrar_completados",
+    "filtrar_cancelados": "filtrar_cancelados",
+    "filtrar_todos": "filtrar_todos",
+    "establecer_origen": "establecer_origen",
+    "establecer_destino": "establecer_destino",
+    "agregar_parada": "agregar_parada",
+    "quitar_parada": "quitar_parada",
+    "enviar_reporte": "enviar_reporte",
 }
 
 
@@ -390,6 +581,21 @@ def interpretar_comando(texto: str) -> dict:
             entidades["nombre_completo"] = nombre
         if parentesco:
             entidades["parentesco"] = parentesco
+
+    elif intencion == "establecer_destino":
+        destino = _extraer_destino(texto)
+        if destino:
+            entidades["destino"] = destino
+
+    elif intencion == "establecer_origen":
+        origen = _extraer_origen(texto)
+        if origen:
+            entidades["origen"] = origen
+
+    elif intencion == "agregar_parada":
+        parada = _extraer_parada(texto)
+        if parada:
+            entidades["parada"] = parada
 
     pantalla = _PANTALLAS.get(intencion)
     respuesta_voz = _generar_respuesta_voz(intencion, entidades)
