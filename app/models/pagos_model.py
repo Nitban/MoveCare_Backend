@@ -14,10 +14,9 @@ class MetodoPago(Base):
     ultimos_cuatro = Column(String(4), nullable=False)
     marca = Column(String, nullable=True)
     activo = Column(Boolean, default=True)
+    stripe_customer_id = Column(String, nullable=True)
 
     id_pasajero = Column(UUID(as_uuid=True), ForeignKey("pasajero.id_pasajero", ondelete="CASCADE"), nullable=False)
-
-    # Asegúrate de agregar la relación 'metodos_pago' en tu modelo Pasajero
     pasajero = relationship("Pasajero", back_populates="metodos_pago")
 
 

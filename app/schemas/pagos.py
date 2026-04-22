@@ -2,6 +2,17 @@ from uuid import UUID
 from typing import Optional
 from pydantic import BaseModel, Field
 
+# ================= ESQUEMAS PARA STRIPE (NUEVOS) =================
+class PagoIntentRequest(BaseModel):
+    monto: float
+    id_viaje: str
+
+class CobroTokenRequest(BaseModel):
+    id_viaje: UUID
+    monto: float
+    id_metodo: UUID
+
+
 # ================= METODO PAGO (PASAJERO) =================
 class MetodoPagoBase(BaseModel):
     alias: Optional[str] = None
