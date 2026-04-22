@@ -12,4 +12,6 @@ class Settings:
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     JWT_EXP_MINUTES: int = int(os.getenv("JWT_EXP_MINUTES", 10080))  # 7 días
 
+    STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY")
+
 settings = Settings()

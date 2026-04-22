@@ -76,4 +76,5 @@ class Viaje(Base):
     conductor = relationship("Conductor")
     pasajero = relationship("Pasajero")
     acompanante = relationship("Acompanante")
+    reporte = relationship("Reporte", back_populates="viaje")
 
