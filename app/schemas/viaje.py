@@ -9,11 +9,16 @@ class DestinoItem(BaseModel):
     lng: Optional[float] = None
     orden: Optional[int] = None
 
+
 class CrearViajeSchema(BaseModel):
     punto_inicio: str
     destino: Optional[str] = None
     fecha_hora_inicio: datetime
+
+    # ── RECUPERAMOS METODO DE PAGO Y HACEMOS ID OPCIONAL ──
     metodo_pago: str
+    id_metodo: Optional[str] = None
+
     costo: Optional[float] = None
     ruta: Optional[Dict] = None
     duracion_estimada: Optional[int] = None
@@ -33,9 +38,13 @@ class ViajeDetalleResponse(BaseModel):
     estado: str
     nombre_conductor: Optional[str] = "Pendiente"
     foto_conductor: Optional[str] = None
+    # Añadido para que el pasajero pueda ver su PIN en la app
+    pin_seguridad: Optional[str] = None
     # calificacion_conductor: Optional[float] = None # Próximamente
 
     class Config:
         from_attributes = True
 
-
+# NUEVO: Schema para cuando el chofer envíe el PIN desde el modal
+class ValidarPinRequest(BaseModel):
+    pin: str

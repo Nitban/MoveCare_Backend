@@ -38,7 +38,13 @@ class Viaje(Base):
 
     fecha_hora_fin = Column(TIMESTAMP, nullable=True)
 
-    metodo_pago = Column(String, nullable=True)
+    # Reemplazado metodo_pago por id_metodo
+    metodo_pago = Column(String, nullable=False, default="Efectivo")
+    id_metodo = Column(String, nullable=True)
+
+    # Nuevo campo para el PIN de seguridad de 4 dígitos
+    pin_seguridad = Column(String(4), nullable=True)
+
     costo = Column(Numeric(10, 2), nullable=True)
 
     estado = Column(

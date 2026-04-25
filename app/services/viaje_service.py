@@ -4,6 +4,7 @@ from app.models.pasajero_model import Pasajero
 from app.models.conductor_model import Conductor
 from app.models.usuario_model import Usuario
 from datetime import datetime
+import random  # Importante para generar el PIN
 
 
 class ViajeService:
@@ -24,22 +25,26 @@ class ViajeService:
 
         destinos_procesados = None
         if es_multi_destino and data.destinos:
-            # Usamos model_dump() para Pydantic V2 o dict() para V1
             destinos_procesados = [
                 d.model_dump() if hasattr(d, 'model_dump') else d.dict()
                 for d in data.destinos
             ]
 
+        # Generamos el PIN de seguridad de 4 dígitos
+        pin_generado = str(random.randint(1000, 9999))
+
         viaje = Viaje(
             id_pasajero=pasajero.id_pasajero,
             punto_inicio=data.punto_inicio,
-
             destino=None if es_multi_destino else data.destino,
             destinos=destinos_procesados if es_multi_destino else None,
             check_destinos=es_multi_destino,
-
             fecha_hora_inicio=data.fecha_hora_inicio,
+
+            # ── GUARDAMOS AMBOS CAMPOS ──
             metodo_pago=data.metodo_pago,
+            id_metodo=data.id_metodo,
+
             costo=data.costo,
             ruta=data.ruta,
             duracion_estimada=data.duracion_estimada,
@@ -50,7 +55,8 @@ class ViajeService:
             id_conductor=None,
             especificaciones=data.especificaciones,
             check_acompanante=data.check_acompanante,
-            id_acompanante=data.id_acompanante
+            id_acompanante=data.id_acompanante,
+            pin_seguridad=pin_generado
         )
 
         db.add(viaje)
@@ -94,9 +100,10 @@ class ViajeService:
                 "fecha_inicio": fecha_formateada,
                 "punto_inicio": v.punto_inicio,
                 "destino": v.destino or "Múltiples destinos",
-                "estado": v.estado,  # Asegúrate que tu modelo Viaje tenga este campo
+                "estado": v.estado,
                 "nombre_conductor": nombre_cond,
-                "foto_conductor": foto_cond
+                "foto_conductor": foto_cond,
+                "pin_seguridad": v.pin_seguridad  # Agregado para que el pasajero lo vea en el historial/activos
             })
 
         return resultado
@@ -212,9 +219,11 @@ class ViajeService:
                 "origen": viaje.punto_inicio,
                 "destino": viaje.destino,
                 "ruta_data": viaje.ruta if viaje.ruta else None,
-                # Formateamos la fecha/hora o mandamos un placeholder si viene nula
                 "hora": str(viaje.fecha_hora_inicio) if viaje.fecha_hora_inicio else "--:--",
                 "check_acompanante": viaje.check_acompanante,
+                "id_metodo": viaje.id_metodo,
+                # Aseguramos que se devuelva el id_metodo para la lógica de cobro frontend
+                "pin_seguridad": viaje.pin_seguridad,  # Enviamos el PIN por si se necesita
                 "pasajero": None,
                 "acompanante": None
             }
@@ -223,9 +232,8 @@ class ViajeService:
             if viaje.pasajero and viaje.pasajero.usuario:
                 usr = viaje.pasajero.usuario
                 resultado["pasajero"] = {
-                    "id_usuario": usr.id_usuario,  # 🔥 También incluimos el id_usuario
+                    "id_usuario": usr.id_usuario,
                     "nombre": usr.nombre_completo,
-                    # Usamos la calificación que viene directo en la tabla viaje (o 5.0 por defecto)
                     "calificacion": str(viaje.cal_pasajero) if viaje.cal_pasajero is not None else "5.0",
                     "foto_perfil": usr.foto_perfil,
                     "discapacidad": usr.discapacidad if usr.discapacidad else ""
@@ -258,13 +266,23 @@ class ViajeService:
         if not viaje:
             raise ValueError("Viaje no encontrado")
 
-        # Eliminamos al conductor del viaje y lo regresamos a 'Pendiente'
-        # para que la futura IA u otro conductor lo pueda tomar.
         viaje.id_conductor = None
         viaje.estado = 'Pendiente'
         db.commit()
         return viaje
 
+    # ── NUEVA FUNCIÓN: VALIDAR PIN DEL VIAJE ──
+    @staticmethod
+    def validar_pin_viaje(db: Session, id_viaje: str, pin_ingresado: str):
+        viaje = db.query(Viaje).filter(Viaje.id_viaje == id_viaje).first()
 
+        if not viaje:
+            raise ValueError("Viaje no encontrado")
 
+        if viaje.pin_seguridad != pin_ingresado:
+            return False  # PIN Incorrecto
 
+        # Si el PIN es correcto, cambiamos el estado a "En_curso" de una vez
+        viaje.estado = "En_curso"
+        db.commit()
+        return True

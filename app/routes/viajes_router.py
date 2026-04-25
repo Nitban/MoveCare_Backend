@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.dependencies.auth_dependencies import require_pasajero, require_conductor
-from app.schemas.viaje import CrearViajeSchema, ViajeDetalleResponse
+# ── CAMBIO: Importamos ValidarPinRequest ──
+from app.schemas.viaje import CrearViajeSchema, ViajeDetalleResponse, ValidarPinRequest
 from app.services.viaje_service import ViajeService
 from typing import List
 
@@ -12,9 +13,9 @@ router = APIRouter(prefix="/viajes", tags=["Viajes"])
 
 @router.post("/crear")
 def crear_viaje(
-    data: CrearViajeSchema,
-    db: Session = Depends(get_db),
-    user=Depends(require_pasajero)
+        data: CrearViajeSchema,
+        db: Session = Depends(get_db),
+        user=Depends(require_pasajero)
 ):
     try:
         viaje = ViajeService.crear_viaje(
@@ -32,10 +33,11 @@ def crear_viaje(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @router.get("/historial", response_model=List[ViajeDetalleResponse])
 def obtener_historial(
-    db: Session = Depends(get_db),
-    user = Depends(require_pasajero)
+        db: Session = Depends(get_db),
+        user=Depends(require_pasajero)
 ):
     try:
         historial = ViajeService.obtener_historial_pasajero(
@@ -49,8 +51,8 @@ def obtener_historial(
 
 @router.get("/historial-conductor")
 def obtener_historial_conductor(
-    db: Session = Depends(get_db),
-    user = Depends(require_conductor) # 🔥 Solo conductores pueden ver esto
+        db: Session = Depends(get_db),
+        user=Depends(require_conductor)  # 🔥 Solo conductores pueden ver esto
 ):
     try:
         historial = ViajeService.obtener_historial_conductor(
@@ -61,11 +63,12 @@ def obtener_historial_conductor(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+
 @router.put("/{id_viaje}/cancelar")
 def cancelar_viaje(
-    id_viaje: str,
-    db: Session = Depends(get_db),
-    user=Depends(require_pasajero)
+        id_viaje: str,
+        db: Session = Depends(get_db),
+        user=Depends(require_pasajero)
 ):
     try:
         ViajeService.cancelar_viaje(
@@ -86,7 +89,6 @@ def cancelar_viaje(
 
 @router.get("/conductor/usuario/{id_usuario}/viajes/{estado}")
 def obtener_viajes_conductor(id_usuario: str, estado: str, db: Session = Depends(get_db)):
-
     valid_estados = ['Pendiente', 'Agendado']
     if estado not in valid_estados:
         raise HTTPException(
@@ -104,7 +106,7 @@ def obtener_viajes_conductor(id_usuario: str, estado: str, db: Session = Depends
         raise HTTPException(status_code=500, detail=str(e))
 
 
-#Especificamente para el conductor
+# Especificamente para el conductor
 @router.put("/{id_viaje}/aceptar")
 def aceptar_viaje(id_viaje: str, db: Session = Depends(get_db)):
     try:
@@ -115,6 +117,7 @@ def aceptar_viaje(id_viaje: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.put("/{id_viaje}/rechazar")
 def rechazar_viaje(id_viaje: str, db: Session = Depends(get_db)):
     try:
@@ -124,6 +127,7 @@ def rechazar_viaje(id_viaje: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/viaje_actual/{id_viaje}")
 def obtener_viaje_actual(id_viaje: str, db: Session = Depends(get_db)):
@@ -155,3 +159,32 @@ def obtener_detalle_viaje(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener el viaje: {str(e)}")
+
+
+# ── NUEVO ENDPOINT: VALIDAR PIN ──
+@router.post("/{id_viaje}/validar-pin")
+def validar_pin_viaje(
+        id_viaje: str,
+        data: ValidarPinRequest,
+        db: Session = Depends(get_db),
+        user=Depends(require_conductor)  # 🔥 Protegido: Solo el conductor lo valida
+):
+    try:
+        pin_valido = ViajeService.validar_pin_viaje(
+            db=db,
+            id_viaje=id_viaje,
+            pin_ingresado=data.pin
+        )
+
+        if not pin_valido:
+            raise HTTPException(status_code=400, detail="PIN incorrecto")
+
+        return {
+            "ok": True,
+            "mensaje": "PIN validado correctamente. El viaje está en curso."
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
