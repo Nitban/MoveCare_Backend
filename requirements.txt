@@ -9,6 +9,7 @@ firebase-admin
 python-jose[cryptography]
 email-validator
 aiosmtplib
+stripe
 
 # ── IA: Asignación de conductores ──
 scipy
