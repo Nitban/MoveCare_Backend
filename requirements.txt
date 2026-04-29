@@ -8,6 +8,7 @@ passlib[bcrypt]
 firebase-admin
 python-jose[cryptography]
 email-validator
+aiosmtplib
 
 # ── IA: Asignación de conductores ──
 scipy
