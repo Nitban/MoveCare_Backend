@@ -13,5 +13,6 @@ class Settings:
     JWT_EXP_MINUTES: int = int(os.getenv("JWT_EXP_MINUTES", 10080))  # 7 días
 
     STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY")
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 
 settings = Settings()

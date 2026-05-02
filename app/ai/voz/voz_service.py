@@ -29,6 +29,13 @@ import re
 from datetime import datetime, timedelta
 from typing import Optional
 
+try:
+    from openai import OpenAI as _OpenAI
+    from app.core.config import settings as _settings
+    _openai_disponible = True
+except ImportError:
+    _openai_disponible = False
+
 
 # ──────────────────────────────────────────────
 # Patrones de intención (español, case-insensitive)
@@ -251,22 +258,81 @@ _PARENTESCOS = [
 # Detección de intención
 # ──────────────────────────────────────────────
 
+_INTENCIONES_VALIDAS = list(_PATRONES_INTENCION.keys()) + ["no_reconocido"]
+
+_SYSTEM_PROMPT = """Eres el asistente de voz de MoveCare, app de transporte para personas mayores o con necesidades especiales.
+
+Detecta la intención del usuario y responde ÚNICAMENTE con el nombre exacto de la intención.
+
+Intenciones disponibles:
+- solicitar_viaje: quiere pedir un viaje, taxi o transporte
+- solicitar_viaje_multiple: quiere un viaje con varias paradas
+- cancelar_viaje: quiere cancelar un viaje
+- ver_viaje_actual: pregunta por su viaje en curso
+- ver_historial: quiere ver viajes anteriores
+- ver_perfil: quiere ver su perfil o datos
+- crear_acompanante: quiere agregar un acompañante
+- ver_acompanantes: quiere ver sus acompañantes
+- ver_pagos: quiere ver métodos de pago o tarjetas
+- ver_home: quiere ir a la pantalla principal
+- confirmar: confirma una acción ("sí", "dale", "ok")
+- cancelar_accion: cancela una acción ("no", "mejor no")
+- ir_atras: quiere regresar a la pantalla anterior
+- filtrar_completados: filtrar viajes completados
+- filtrar_cancelados: filtrar viajes cancelados
+- filtrar_todos: ver todos los viajes
+- establecer_origen: indica desde dónde sale
+- establecer_destino: indica a dónde quiere ir
+- agregar_parada: quiere agregar una parada al viaje
+- quitar_parada: quiere eliminar una parada
+- enviar_reporte: quiere enviar un reporte o queja
+- no_reconocido: no corresponde a ninguna intención
+
+Responde SOLO con el nombre de la intención, sin explicación."""
+
+
+def _detectar_con_gpt(texto: str) -> tuple[str, float]:
+    """Fallback: usa GPT-4o-mini cuando el regex no reconoce la intención."""
+    if not _openai_disponible:
+        return "no_reconocido", 0.0
+
+    api_key = getattr(_settings, "OPENAI_API_KEY", "")
+    if not api_key:
+        return "no_reconocido", 0.0
+
+    try:
+        client = _OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": texto},
+            ],
+            max_tokens=20,
+            temperature=0,
+        )
+        intencion = response.choices[0].message.content.strip().lower()
+        if intencion not in _INTENCIONES_VALIDAS:
+            return "no_reconocido", 0.0
+        return intencion, 0.75
+    except Exception:
+        return "no_reconocido", 0.0
+
+
 def detectar_intencion(texto: str) -> tuple[str, float]:
     """
-    Detecta la intención del texto mediante patrones regex.
-
-    Returns:
-        (intencion, confianza) — confianza entre 0.0 y 1.0
+    Detecta la intención del texto.
+    Primero intenta regex (rápido, gratis).
+    Si no reconoce nada, usa GPT-4o-mini como fallback.
     """
     texto_norm = texto.lower().strip()
 
-    # Orden importa: múltiple debe ir antes que simple
     for intencion, patrones in _PATRONES_INTENCION.items():
         for patron in patrones:
             if re.search(patron, texto_norm):
                 return intencion, 0.9
 
-    return "no_reconocido", 0.0
+    return _detectar_con_gpt(texto)
 
 
 # ──────────────────────────────────────────────
