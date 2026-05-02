@@ -2,15 +2,18 @@
 Router de Control por Voz — MoveCare
 
 Endpoints:
-  POST /ia/voz/interpretar  → Interpreta texto transcrito y devuelve intención + entidades
-  POST /ia/voz/demo         → Demo pública sin autenticación (para pruebas)
+  POST /ia/voz/interpretar       → Interpreta texto transcrito y devuelve intención + entidades
+  POST /ia/voz/interpretar-audio → Transcribe audio con Whisper e interpreta intención
+  POST /ia/voz/demo              → Demo pública sin autenticación (para pruebas)
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
+from openai import OpenAI
 
 from app.ai.voz.voz_service import interpretar_comando
 from app.dependencies.auth_dependencies import require_pasajero
+from app.core.config import settings
 
 router = APIRouter(prefix="/ia/voz", tags=["Voz"])
 
@@ -69,6 +72,35 @@ def interpretar_voz(
         return {"ok": True, **resultado}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al interpretar comando: {str(e)}")
+
+
+@router.post(
+    "/interpretar-audio",
+    summary="Transcribir audio con Whisper e interpretar intención",
+)
+async def interpretar_audio(
+    audio: UploadFile = File(...),
+    user=Depends(require_pasajero),
+):
+    """
+    Recibe un archivo de audio (M4A, WEBM, WAV, MP3),
+    lo transcribe con Whisper y devuelve intención + entidades.
+    """
+    if not settings.OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="OPENAI_API_KEY no configurada")
+    try:
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        audio_bytes = await audio.read()
+        transcripcion = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=(audio.filename or "audio.webm", audio_bytes, audio.content_type or "audio/webm"),
+            language="es",
+        )
+        texto = transcripcion.text.strip()
+        resultado = interpretar_comando(texto)
+        return {"ok": True, **resultado}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al procesar audio: {str(e)}")
 
 
 @router.post(
