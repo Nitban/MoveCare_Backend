@@ -224,6 +224,7 @@ class ViajeService:
                 "id_metodo": viaje.id_metodo,
                 # Aseguramos que se devuelva el id_metodo para la lógica de cobro frontend
                 "pin_seguridad": viaje.pin_seguridad,  # Enviamos el PIN por si se necesita
+                "estado": viaje.estado,
                 "pasajero": None,
                 "acompanante": None
             }
@@ -286,3 +287,22 @@ class ViajeService:
         viaje.estado = "En_curso"
         db.commit()
         return True
+
+    @staticmethod
+    def finalizar_viaje(db: Session, id_viaje: str):
+        viaje = db.query(Viaje).filter(Viaje.id_viaje == id_viaje).first()
+
+        if not viaje:
+            raise ValueError("Viaje no encontrado")
+
+        if viaje.estado == 'Finalizado':
+            raise ValueError("El viaje ya fue finalizado anteriormente")
+
+        # Cambiamos el estado y guardamos la hora de finalización
+        viaje.estado = "Finalizado"
+        viaje.fecha_hora_fin = datetime.utcnow()
+
+        db.commit()
+        db.refresh(viaje)
+
+        return viaje

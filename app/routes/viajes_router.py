@@ -161,6 +161,30 @@ def obtener_detalle_viaje(
         raise HTTPException(status_code=500, detail=f"Error al obtener el viaje: {str(e)}")
 
 
+@router.put("/{id_viaje}/finalizar")
+def finalizar_viaje(
+        id_viaje: str,
+        db: Session = Depends(get_db),
+        user=Depends(require_conductor)  # 🔥 Protegido: Solo el conductor finaliza
+):
+    try:
+        viaje = ViajeService.finalizar_viaje(
+            db=db,
+            id_viaje=id_viaje
+        )
+
+        return {
+            "ok": True,
+            "mensaje": "Viaje finalizado con éxito",
+            "id_viaje": viaje.id_viaje
+        }
+
+    except ValueError as e:
+        # Esto captura tanto si no existe como si ya está finalizado
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ── NUEVO ENDPOINT: VALIDAR PIN ──
 @router.post("/{id_viaje}/validar-pin")
 def validar_pin_viaje(
