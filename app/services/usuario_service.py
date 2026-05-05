@@ -8,6 +8,7 @@ from app.core.security import crear_jwt
 from app.services.email_service import EmailService
 import os
 
+
 class UsuarioService:
 
     @staticmethod
@@ -48,56 +49,46 @@ class UsuarioService:
         db.commit()
 
         # 4. Enviar correo de verificación
-        #link = f"{os.getenv('FRONTEND_URL')}/confirmar-correo?uid={uid}"
-        link = f"http://localhost:55308/#/confirmar-correo?uid={uid}"
 
+        # HTML Estilizado para MoveCare con tipografía como logo
         html = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 20px;
-                    border-radius: 12px; background: #ffffff; border: 1px solid #e0e0e0;">
+        <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; padding: 40px 20px;">
+            <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
 
-            <h2 style="color: #4A4A4A; text-align: center;">
-                Bienvenido a MoveCare 🚗💙
-            </h2>
+                <div style="background-color: #ffffff; padding: 30px 20px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+                    <h1 style="margin: 0; color: #1976d2; font-size: 28px; font-weight: 800; letter-spacing: 1px;">
+                        MoveCare
+                    </h1>
+                </div>
 
-            <p style="font-size: 15px; color: #333;">
-                Gracias por registrarte en <b>MoveCare</b>.
-                Para poder iniciar sesión, necesitamos que confirmes tu correo electrónico.
-            </p>
+                <div style="padding: 30px;">
+                    <h2 style="color: #2c3e50; font-size: 22px; margin-top: 0; text-align: center;">Bienvenido</h2>
+                    <p style="font-size: 16px; color: #555555; line-height: 1.6; text-align: center;">
+                        Gracias por registrarte. Para poder iniciar sesión y utilizar la aplicación, necesitamos que confirmes tu correo electrónico.
+                    </p>
 
-            <p style="font-size: 15px; color: #333;">
-                Ingresa el siguiente <b>código de verificación</b> en la pantalla de
-                <b>Confirmar correo</b> dentro de la aplicación:
-            </p>
+                    <p style="font-size: 16px; color: #555555; line-height: 1.6; text-align: center; margin-top: 20px;">
+                        Ingresa el siguiente código de verificación en la aplicación:
+                    </p>
 
-            <div style="text-align: center; margin: 25px 0;">
-                <span style="
-                    display: inline-block;
-                    background-color: #f5f5f5;
-                    padding: 12px 20px;
-                    border-radius: 8px;
-                    font-size: 16px;
-                    font-weight: bold;
-                    color: #007BFF;
-                    letter-spacing: 1px;
-                ">
-                    {uid}
-                </span>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <span style="display: inline-block; background-color: #e3f2fd; color: #1976d2; padding: 15px 30px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 2px; border: 1px solid #bbdefb;">
+                            {uid}
+                        </span>
+                    </div>
+
+                    <p style="font-size: 14px; color: #777777; text-align: center; line-height: 1.5;">
+                        Una vez ingresado este código, tu cuenta quedará verificada. Si no solicitaste este registro, puedes ignorar este mensaje de forma segura.
+                    </p>
+                </div>
+
+                <div style="background-color: #f9f9f9; padding: 20px; text-align: center;">
+                    <p style="font-size: 12px; color: #999999; margin: 0;">
+                        © 2026 MoveCare. Todos los derechos reservados.
+                    </p>
+                </div>
+
             </div>
-
-            <p style="font-size: 14px; color: #555;">
-                Una vez ingresado este código, tu correo quedará verificado y
-                podrás iniciar sesión normalmente.
-            </p>
-
-            <p style="font-size: 14px; color: #555;">
-                Si tú no creaste esta cuenta, puedes ignorar este mensaje.
-            </p>
-
-            <hr style="margin: 25px 0; border: none; border-top: 1px solid #ddd;">
-
-            <p style="font-size: 12px; text-align: center; color: #888;">
-                © 2025 MoveCare. Todos los derechos reservados.
-            </p>
         </div>
         """
 

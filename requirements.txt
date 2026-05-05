@@ -10,6 +10,7 @@ python-jose[cryptography]
 email-validator
 aiosmtplib
 stripe
+httpx
 
 # ── IA: Asignación de conductores ──
 scipy
