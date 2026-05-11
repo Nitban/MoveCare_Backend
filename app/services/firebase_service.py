@@ -3,7 +3,15 @@ from firebase_admin import credentials, auth
 import requests
 import os
 
-SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_CREDENTIALS", "firebase-adminsdk.json")
+# Definimos las rutas
+RENDER_SECRET_PATH = '/etc/secrets/firebase-adminsdk.json'
+LOCAL_PATH = 'app/firebase/firebase-adminsdk.json'
+
+# Verificamos dónde estamos ejecutando el código
+if os.path.exists(RENDER_SECRET_PATH):
+    SERVICE_ACCOUNT_PATH = RENDER_SECRET_PATH
+else:
+    SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_CREDENTIALS", LOCAL_PATH)
 
 cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
 firebase_admin.initialize_app(cred)

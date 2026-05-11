@@ -86,6 +86,7 @@ class AppService:
                 "vehiculo_color": vehiculo.color if vehiculo else "N/A",
                 "vehiculo_placas": vehiculo.placas if vehiculo else "N/A",
                 "vehiculo_accesorios": vehiculo.accesorios if vehiculo else "Ninguno",
+                "pin": viaje.pin_seguridad,
                 "ruta": getattr(viaje, 'ruta', None)
             }
 

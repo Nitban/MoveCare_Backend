@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.viaje_model import Viaje
 from app.models.pasajero_model import Pasajero
 from app.models.conductor_model import Conductor
+from app.models.vehiculo_model import Vehiculos
 from app.models.usuario_model import Usuario
 from datetime import datetime
 import random  # Importante para generar el PIN
@@ -204,14 +205,15 @@ class ViajeService:
 
     @staticmethod
     def obtener_viaje_por_id(db: Session, id_viaje: str):
-        # 1. Hacemos el EAGER LOAD con el "doble salto" para el pasajero, y el salto normal para acompañante
+        # 1. Mantenemos tu EAGER LOAD original y agregamos el del conductor -> usuario
         viaje = db.query(Viaje).options(
-            joinedload(Viaje.pasajero).joinedload(Pasajero.usuario),  # Viaje -> Pasajero -> Usuario
-            joinedload(Viaje.acompanante)  # Viaje -> Acompanante
+            joinedload(Viaje.pasajero).joinedload(Pasajero.usuario),
+            joinedload(Viaje.conductor).joinedload(Conductor.usuario),
+            joinedload(Viaje.acompanante)
         ).filter(Viaje.id_viaje == id_viaje).first()
 
         if viaje:
-            # 2. Armamos el diccionario base
+            # 2. Tu DICCIONARIO BASE original (Sin eliminar nada)
             resultado = {
                 "id_viaje": viaje.id_viaje,
                 "id_pasajero": viaje.id_pasajero,
@@ -222,24 +224,46 @@ class ViajeService:
                 "hora": str(viaje.fecha_hora_inicio) if viaje.fecha_hora_inicio else "--:--",
                 "check_acompanante": viaje.check_acompanante,
                 "id_metodo": viaje.id_metodo,
-                # Aseguramos que se devuelva el id_metodo para la lógica de cobro frontend
-                "pin_seguridad": viaje.pin_seguridad,  # Enviamos el PIN por si se necesita
+                "pin_seguridad": viaje.pin_seguridad,
+                "estado": viaje.estado,
                 "pasajero": None,
-                "acompanante": None
+                "acompanante": None,
+                "conductor": None  # Espacio para la nueva info
             }
 
-            # 3. Extraemos la info del pasajero y su id_usuario
+            # 3. Info del pasajero (Exactamente como la tenías)
             if viaje.pasajero and viaje.pasajero.usuario:
                 usr = viaje.pasajero.usuario
                 resultado["pasajero"] = {
                     "id_usuario": usr.id_usuario,
                     "nombre": usr.nombre_completo,
                     "calificacion": str(viaje.cal_pasajero) if viaje.cal_pasajero is not None else "5.0",
-                    "foto_perfil": usr.foto_perfil,
+                    "foto_perfil": usr.foto_perfil,  # Aquí va la imagen
                     "discapacidad": usr.discapacidad if usr.discapacidad else ""
                 }
 
-            # 4. Extraemos la info del acompañante
+            # 4. NUEVA SECCIÓN: Info del Conductor + Búsqueda de Vehículo
+            if viaje.conductor and viaje.conductor.usuario:
+                u_cond = viaje.conductor.usuario
+
+                # Buscamos el vehículo manualmente para evitar el error de atributo
+                veh = db.query(Vehiculos).filter(Vehiculos.id_conductor == viaje.id_conductor).first()
+
+                resultado["conductor"] = {
+                    "id_usuario": u_cond.id_usuario,
+                    "nombre": u_cond.nombre_completo,
+                    "foto_perfil": u_cond.foto_perfil,  # Imagen del conductor
+                    "telefono": u_cond.telefono,
+                    "calificacion": str(viaje.cal_conductor) if viaje.cal_conductor is not None else "5.0",
+                    "vehiculo": {
+                        "modelo": veh.modelo if veh else "Vehículo no asignado",
+                        "placa": veh.placas if veh else "---",
+                        "color": veh.color if veh else "",
+                        "foto_vehiculo": veh.foto_vehiculo if veh and hasattr(veh, 'foto_vehiculo') else None
+                    }
+                }
+
+            # 5. Info del acompañante (Exactamente como la tenías)
             if viaje.check_acompanante and viaje.acompanante:
                 resultado["acompanante"] = {
                     "nombre": viaje.acompanante.nombre_completo,
@@ -286,3 +310,22 @@ class ViajeService:
         viaje.estado = "En_curso"
         db.commit()
         return True
+
+    @staticmethod
+    def finalizar_viaje(db: Session, id_viaje: str):
+        viaje = db.query(Viaje).filter(Viaje.id_viaje == id_viaje).first()
+
+        if not viaje:
+            raise ValueError("Viaje no encontrado")
+
+        if viaje.estado == 'Finalizado':
+            raise ValueError("El viaje ya fue finalizado anteriormente")
+
+        # Cambiamos el estado y guardamos la hora de finalización
+        viaje.estado = "Finalizado"
+        viaje.fecha_hora_fin = datetime.utcnow()
+
+        db.commit()
+        db.refresh(viaje)
+
+        return viaje
