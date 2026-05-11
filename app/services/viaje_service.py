@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.viaje_model import Viaje
 from app.models.pasajero_model import Pasajero
 from app.models.conductor_model import Conductor
+from app.models.vehiculo_model import Vehiculos
 from app.models.usuario_model import Usuario
 from datetime import datetime
 import random  # Importante para generar el PIN
@@ -204,17 +205,15 @@ class ViajeService:
 
     @staticmethod
     def obtener_viaje_por_id(db: Session, id_viaje: str):
-        # 1. Agregamos los joins:
-        # Conductor -> Usuario (para nombre/foto)
-        # Conductor -> Vehiculo (para modelo/placa)
+        # 1. Mantenemos tu EAGER LOAD original y agregamos el del conductor -> usuario
         viaje = db.query(Viaje).options(
             joinedload(Viaje.pasajero).joinedload(Pasajero.usuario),
             joinedload(Viaje.conductor).joinedload(Conductor.usuario),
-            joinedload(Viaje.conductor).joinedload(Conductor.vehiculo),  # <-- Salto a la tabla vehiculos
             joinedload(Viaje.acompanante)
         ).filter(Viaje.id_viaje == id_viaje).first()
 
         if viaje:
+            # 2. Tu DICCIONARIO BASE original (Sin eliminar nada)
             resultado = {
                 "id_viaje": viaje.id_viaje,
                 "id_pasajero": viaje.id_pasajero,
@@ -223,43 +222,48 @@ class ViajeService:
                 "destino": viaje.destino,
                 "ruta_data": viaje.ruta if viaje.ruta else None,
                 "hora": str(viaje.fecha_hora_inicio) if viaje.fecha_hora_inicio else "--:--",
+                "check_acompanante": viaje.check_acompanante,
+                "id_metodo": viaje.id_metodo,
                 "pin_seguridad": viaje.pin_seguridad,
                 "estado": viaje.estado,
                 "pasajero": None,
-                "conductor": None,
-                "acompanante": None
+                "acompanante": None,
+                "conductor": None  # Espacio para la nueva info
             }
 
-            # 2. Datos del Pasajero
+            # 3. Info del pasajero (Exactamente como la tenías)
             if viaje.pasajero and viaje.pasajero.usuario:
                 usr = viaje.pasajero.usuario
                 resultado["pasajero"] = {
+                    "id_usuario": usr.id_usuario,
                     "nombre": usr.nombre_completo,
                     "calificacion": str(viaje.cal_pasajero) if viaje.cal_pasajero is not None else "5.0",
-                    "foto_perfil": usr.foto_perfil
+                    "foto_perfil": usr.foto_perfil,  # Aquí va la imagen
+                    "discapacidad": usr.discapacidad if usr.discapacidad else ""
                 }
 
-            # 3. Datos del Conductor + Vehículo
+            # 4. NUEVA SECCIÓN: Info del Conductor + Búsqueda de Vehículo
             if viaje.conductor and viaje.conductor.usuario:
                 u_cond = viaje.conductor.usuario
-                # Accedemos a la relación del vehículo desde el conductor
-                veh = viaje.conductor.vehiculo
+
+                # Buscamos el vehículo manualmente para evitar el error de atributo
+                veh = db.query(Vehiculos).filter(Vehiculos.id_conductor == viaje.id_conductor).first()
 
                 resultado["conductor"] = {
                     "id_usuario": u_cond.id_usuario,
                     "nombre": u_cond.nombre_completo,
-                    "foto_perfil": u_cond.foto_perfil,
+                    "foto_perfil": u_cond.foto_perfil,  # Imagen del conductor
                     "telefono": u_cond.telefono,
                     "calificacion": str(viaje.cal_conductor) if viaje.cal_conductor is not None else "5.0",
-                    # Datos extraídos de la tabla vehiculos
                     "vehiculo": {
-                        "modelo": veh.modelo if veh else "Vehículo",
-                        "placa": veh.placa if veh else "---",
-                        "color": veh.color if veh else ""
+                        "modelo": veh.modelo if veh else "Vehículo no asignado",
+                        "placa": veh.placas if veh else "---",
+                        "color": veh.color if veh else "",
+                        "foto_vehiculo": veh.foto_vehiculo if veh and hasattr(veh, 'foto_vehiculo') else None
                     }
                 }
 
-            # 4. Datos del acompañante
+            # 5. Info del acompañante (Exactamente como la tenías)
             if viaje.check_acompanante and viaje.acompanante:
                 resultado["acompanante"] = {
                     "nombre": viaje.acompanante.nombre_completo,
