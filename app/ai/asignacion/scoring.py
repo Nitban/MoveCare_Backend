@@ -26,8 +26,9 @@ def puntaje_accesibilidad(discapacidad: Optional[str], accesorios: Optional[str]
     """
     Retorna un valor entre 0.0 y 1.0.
     1.0 → vehículo completamente compatible
-    0.5 → compatibilidad parcial
-    0.0 → incompatible (penalización máxima)
+    0.6 → compatibilidad parcial (vehículo amplio para motriz/obesidad)
+    0.3 → sin accesorios pero puede intentarlo
+    0.0 → incompatible total (no debería asignarse)
     """
     if not discapacidad:
         return 1.0
@@ -40,9 +41,20 @@ def puntaje_accesibilidad(discapacidad: Optional[str], accesorios: Optional[str]
 
     texto_accesorios = (accesorios or "").lower()
 
-    # Basta con que el vehículo tenga AL MENOS UNO de los accesorios requeridos
+    # Compatibilidad perfecta
     if any(kw in texto_accesorios for kw in keywords):
         return 1.0
+
+    # Compatibilidad parcial: vehículo amplio para casos de movilidad/obesidad
+    if clave in ["motriz", "obesidad"] and any(
+        kw in texto_accesorios for kw in ["amplio", "espacioso", "grande", "suv", "van"]
+    ):
+        return 0.6
+
+    # Sin accesorios específicos pero existe vehículo disponible
+    if texto_accesorios:
+        return 0.3
+
     return 0.0
 
 
@@ -73,10 +85,11 @@ def distancia_haversine(lat1: Optional[float], lon1: Optional[float],
 
 
 def puntaje_distancia(distancia_km: float, radio_max_km: float = 20.0) -> float:
-    """Mayor proximidad = mayor puntaje. Fuera del radio máximo → 0."""
+    """Mayor proximidad = mayor puntaje. Penalización cuadrática para favorecer conductores cercanos."""
     if distancia_km >= radio_max_km:
         return 0.0
-    return 1.0 - (distancia_km / radio_max_km)
+    normalizado = distancia_km / radio_max_km
+    return 1.0 - (normalizado ** 1.5)
 
 
 def puntaje_capacidad(capacidad: Optional[int], con_acompanante: bool) -> float:

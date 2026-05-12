@@ -120,6 +120,19 @@ def obtener_metricas_conductor(db: Session, id_usuario: str) -> dict:
 
     ganancia_promedio = round(ganancias_total / total_viajes, 2) if total_viajes > 0 else 0.0
 
+    # ── Proyección de ganancias ───────────────────────────────────────────────
+    proyeccion_7d = None
+    proyeccion_30d = None
+    tendencia = "sin_datos"
+
+    ganancias_diarias = df.groupby(df["fecha"].dt.date)["costo"].sum()
+    if len(ganancias_diarias) >= 3:
+        ema = ganancias_diarias.ewm(span=3).mean()
+        promedio_reciente = float(ema.iloc[-1])
+        proyeccion_7d = round(promedio_reciente * 7, 2)
+        proyeccion_30d = round(promedio_reciente * 30, 2)
+        tendencia = "creciente" if float(ema.iloc[-1]) > float(ema.iloc[0]) else "decreciente"
+
     return {
         "kpis": {
             "total_viajes": total_viajes,
@@ -141,5 +154,10 @@ def obtener_metricas_conductor(db: Session, id_usuario: str) -> dict:
             "tiempo_promedio_min": tiempo_promedio,
             "ganancia_promedio": ganancia_promedio,
             "mejor_dia": mejor_dia,
+        },
+        "proyecciones": {
+            "proximos_7_dias": proyeccion_7d,
+            "proximos_30_dias": proyeccion_30d,
+            "tendencia": tendencia,
         },
     }

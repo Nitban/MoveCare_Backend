@@ -11,6 +11,7 @@ Funciones principales:
 from __future__ import annotations
 
 import math
+from datetime import datetime
 from typing import Optional
 
 import networkx as nx
@@ -134,6 +135,13 @@ def calcular_ruta(origen: str, destino: str) -> dict:
     lat_o, lon_o = geocodificar(origen)
     lat_d, lon_d = geocodificar(destino)
 
+    distancia_directa = _haversine(lat_o, lon_o, lat_d, lon_d)
+    if distancia_directa > 80:
+        raise ValueError(
+            f"El destino está a {distancia_directa:.0f} km. "
+            "MoveCare opera dentro de la Zona Metropolitana de Guadalajara (máx. 80 km)."
+        )
+
     G = _grafo_entre_puntos(lat_o, lon_o, lat_d, lon_d)
 
     nodo_o = ox.distance.nearest_nodes(G, lon_o, lat_o)
@@ -182,8 +190,17 @@ def calcular_ruta(origen: str, destino: str) -> dict:
     }
 
 
+FACTORES_CONGESTION: dict[int, float] = {
+    7: 1.30, 8: 1.40, 9: 1.20,   # Rush mañana GDL
+    13: 1.15, 14: 1.15,            # Hora de comida
+    17: 1.35, 18: 1.45, 19: 1.20, # Rush tarde GDL
+}
+
 def _estimar_duracion(G: nx.MultiDiGraph, ruta_nodos: list) -> float:
-    """Estima duración en segundos según tipo de vía de cada segmento."""
+    """Estima duración en segundos ajustando por congestión horaria en GDL."""
+    hora_actual = datetime.now().hour
+    factor = FACTORES_CONGESTION.get(hora_actual, 1.0)
+
     total_seg = 0.0
     for i in range(len(ruta_nodos) - 1):
         datos_arista = G[ruta_nodos[i]][ruta_nodos[i + 1]][0]
@@ -192,7 +209,7 @@ def _estimar_duracion(G: nx.MultiDiGraph, ruta_nodos: list) -> float:
         if isinstance(tipo_via, list):
             tipo_via = tipo_via[0]
         velocidad = VELOCIDADES_VIA.get(tipo_via, VELOCIDAD_DEFAULT)
-        total_seg += (longitud_m / 1000) / velocidad * 3600
+        total_seg += (longitud_m / 1000) / (velocidad / factor) * 3600
     return total_seg
 
 
