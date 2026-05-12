@@ -58,10 +58,16 @@ def puntaje_accesibilidad(discapacidad: Optional[str], accesorios: Optional[str]
     return 0.0
 
 
-def puntaje_rating(rating_promedio: Optional[float]) -> float:
-    """Normaliza calificación 0–5 a 0–1. Conductores nuevos reciben 0.7."""
+def puntaje_rating(rating_promedio: Optional[float], viajes_completados: int = 0) -> float:
+    """
+    Normaliza calificación 0–5 a 0–1 con ajuste bayesiano.
+    Conductores con pocos viajes tienen menos peso aunque su rating sea alto.
+    """
     if rating_promedio is None:
-        return 0.7
+        return max(0.4, 0.7 - (viajes_completados * 0.01))
+    if viajes_completados < 10:
+        confianza = viajes_completados / 10.0
+        return round(0.5 + confianza * (rating_promedio / 5.0 - 0.5), 4)
     return max(0.0, min(rating_promedio / 5.0, 1.0))
 
 
@@ -111,6 +117,7 @@ def calcular_costo(
     lon_viaje: Optional[float],
     capacidad: Optional[int],
     con_acompanante: bool,
+    viajes_completados: int = 0,
 ) -> float:
     """
     Retorna el COSTO de asignación (0 = mejor, 1 = peor).
@@ -120,14 +127,14 @@ def calcular_costo(
       Accesibilidad : 40%
       Distancia     : 35%
       Rating        : 15%
-      Capacidad     :10%
+      Capacidad     : 10%
     """
     distancia_km = distancia_haversine(lat_conductor, lon_conductor, lat_viaje, lon_viaje)
 
     score = (
         0.40 * puntaje_accesibilidad(discapacidad, accesorios)
         + 0.35 * puntaje_distancia(distancia_km)
-        + 0.15 * puntaje_rating(rating_promedio)
+        + 0.15 * puntaje_rating(rating_promedio, viajes_completados)
         + 0.10 * puntaje_capacidad(capacidad, con_acompanante)
     )
 

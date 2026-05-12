@@ -80,6 +80,11 @@ def _conductores_disponibles(db: Session) -> list[dict]:
             Viaje.cal_conductor.isnot(None),
         ).scalar()
 
+        viajes_completados = db.query(sa_func.count(Viaje.id_viaje)).filter(
+            Viaje.id_conductor == c.id_conductor,
+            Viaje.estado == "Finalizado",
+        ).scalar() or 0
+
         conductores.append(
             {
                 "id_conductor": c.id_conductor,
@@ -87,6 +92,7 @@ def _conductores_disponibles(db: Session) -> list[dict]:
                 "accesorios": v.accesorios if v else None,
                 "capacidad": v.capacidad if v else None,
                 "rating_avg": float(rating_avg) if rating_avg else None,
+                "viajes_completados": viajes_completados,
                 "lat": ub.latitud if ub else None,
                 "lon": ub.longitud if ub else None,
             }
@@ -191,6 +197,7 @@ def asignar_conductores(
                 lon_viaje=ti["lon"],
                 capacidad=c["capacidad"],
                 con_acompanante=bool(ti["viaje"].check_acompanante),
+                viajes_completados=c["viajes_completados"],
             )
 
     # 5. Algoritmo húngaro
