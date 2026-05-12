@@ -27,6 +27,33 @@ def _empty_metrics() -> dict:
     }
 
 
+def _detectar_anomalias(df: pd.DataFrame) -> list:
+    anomalias = []
+
+    if len(df) >= 10:
+        cals_recientes = df.tail(5)["cal_conductor"].dropna()
+        cals_previas = df.iloc[-15:-5]["cal_conductor"].dropna()
+        if len(cals_recientes) > 0 and len(cals_previas) > 0:
+            caida = float(cals_previas.mean()) - float(cals_recientes.mean())
+            if caida > 1.0:
+                anomalias.append({
+                    "tipo": "caida_rating",
+                    "severidad": "alta" if caida > 1.5 else "media",
+                    "detalle": f"Rating cayó {round(caida, 1)} estrellas en los últimos 5 viajes",
+                })
+
+    estados_recientes = df.tail(10)["estado"]
+    tasa_cancelacion = (estados_recientes == "cancelado").sum() / len(estados_recientes)
+    if tasa_cancelacion > 0.3:
+        anomalias.append({
+            "tipo": "cancelaciones_altas",
+            "severidad": "alta" if tasa_cancelacion > 0.5 else "media",
+            "detalle": f"{round(tasa_cancelacion * 100, 1)}% de cancelaciones en los últimos 10 viajes",
+        })
+
+    return anomalias
+
+
 def obtener_metricas_conductor(db: Session, id_usuario: str) -> dict:
     # Buscar el conductor por id_usuario
     conductor = db.query(Conductor).filter(
@@ -160,4 +187,5 @@ def obtener_metricas_conductor(db: Session, id_usuario: str) -> dict:
             "proximos_30_dias": proyeccion_30d,
             "tendencia": tendencia,
         },
+        "anomalias": _detectar_anomalias(df),
     }

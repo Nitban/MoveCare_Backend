@@ -38,6 +38,9 @@ VELOCIDADES_VIA: dict[str, float] = {
 }
 VELOCIDAD_DEFAULT = 25.0  # km/h para calles sin clasificar
 
+# Cache en memoria de grafos OSM — evita descargar el mismo grafo múltiples veces
+_CACHE_GRAFOS: dict[tuple, nx.MultiDiGraph] = {}
+
 
 # ──────────────────────────────────────────────
 # Geocodificación
@@ -84,8 +87,12 @@ def _grafo_entre_puntos(
 ) -> nx.MultiDiGraph:
     """
     Descarga el grafo de calles de OSM en el área que cubre origen y destino.
-    Usa un bounding box con margen para garantizar que exista ruta.
+    Usa caché en memoria para evitar descargas repetidas en la misma zona.
     """
+    cache_key = (round(lat_o, 1), round(lon_o, 1), round(lat_d, 1), round(lon_d, 1))
+    if cache_key in _CACHE_GRAFOS:
+        return _CACHE_GRAFOS[cache_key]
+
     distancia_km = _haversine(lat_o, lon_o, lat_d, lon_d)
     radio_m = max(2000, int((distancia_km / 2 + buffer_km) * 1000))
 
@@ -98,6 +105,10 @@ def _grafo_entre_puntos(
         network_type="drive",
         simplify=True,
     )
+
+    if len(G.nodes()) < 15000:
+        _CACHE_GRAFOS[cache_key] = G
+
     return G
 
 
