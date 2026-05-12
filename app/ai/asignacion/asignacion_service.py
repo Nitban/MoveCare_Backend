@@ -16,7 +16,7 @@ from uuid import UUID
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from sqlalchemy import and_
+from sqlalchemy import and_, func as sa_func
 from sqlalchemy.orm import Session
 
 from app.ai.asignacion.scoring import calcular_costo
@@ -75,18 +75,6 @@ def _conductores_disponibles(db: Session) -> list[dict]:
             continue
         visto.add(c.id_conductor)
 
-        rating = (
-            db.query(
-                db.query(Viaje.cal_conductor)
-                .filter(
-                    Viaje.id_conductor == c.id_conductor,
-                    Viaje.cal_conductor.isnot(None),
-                )
-                .subquery()
-            ).count()
-        )
-        # Calcular promedio de calificación
-        from sqlalchemy import func as sa_func
         rating_avg = db.query(sa_func.avg(Viaje.cal_conductor)).filter(
             Viaje.id_conductor == c.id_conductor,
             Viaje.cal_conductor.isnot(None),

@@ -61,6 +61,7 @@ def obtener_metricas_conductor(db: Session, id_usuario: str) -> dict:
 
     df = pd.DataFrame(registros)
     df["fecha"] = pd.to_datetime(df["fecha"])
+    df["estado"] = df["estado"].str.lower()
 
     # ── KPIs ──────────────────────────────────────────────────────────────────
     total_viajes = len(df)
