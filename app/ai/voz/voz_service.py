@@ -656,7 +656,7 @@ def interpretar_comando(texto: str) -> dict:
     elif intencion == "establecer_origen":
         origen = _extraer_origen(texto)
         if origen:
-            entidades["origen"] = origen
+            entidades["punto_inicio"] = origen
 
     elif intencion == "agregar_parada":
         parada = _extraer_parada(texto)

@@ -11,6 +11,7 @@ Funciones principales:
 from __future__ import annotations
 
 import math
+from datetime import datetime
 from typing import Optional
 
 import networkx as nx
@@ -36,6 +37,9 @@ VELOCIDADES_VIA: dict[str, float] = {
     "service": 15,
 }
 VELOCIDAD_DEFAULT = 25.0  # km/h para calles sin clasificar
+
+# Cache en memoria de grafos OSM — evita descargar el mismo grafo múltiples veces
+_CACHE_GRAFOS: dict[tuple, nx.MultiDiGraph] = {}
 
 
 # ──────────────────────────────────────────────
@@ -83,8 +87,12 @@ def _grafo_entre_puntos(
 ) -> nx.MultiDiGraph:
     """
     Descarga el grafo de calles de OSM en el área que cubre origen y destino.
-    Usa un bounding box con margen para garantizar que exista ruta.
+    Usa caché en memoria para evitar descargas repetidas en la misma zona.
     """
+    cache_key = (round(lat_o, 1), round(lon_o, 1), round(lat_d, 1), round(lon_d, 1))
+    if cache_key in _CACHE_GRAFOS:
+        return _CACHE_GRAFOS[cache_key]
+
     distancia_km = _haversine(lat_o, lon_o, lat_d, lon_d)
     radio_m = max(2000, int((distancia_km / 2 + buffer_km) * 1000))
 
@@ -97,6 +105,10 @@ def _grafo_entre_puntos(
         network_type="drive",
         simplify=True,
     )
+
+    if len(G.nodes()) < 15000:
+        _CACHE_GRAFOS[cache_key] = G
+
     return G
 
 
@@ -133,6 +145,13 @@ def calcular_ruta(origen: str, destino: str) -> dict:
     """
     lat_o, lon_o = geocodificar(origen)
     lat_d, lon_d = geocodificar(destino)
+
+    distancia_directa = _haversine(lat_o, lon_o, lat_d, lon_d)
+    if distancia_directa > 80:
+        raise ValueError(
+            f"El destino está a {distancia_directa:.0f} km. "
+            "MoveCare opera dentro de la Zona Metropolitana de Guadalajara (máx. 80 km)."
+        )
 
     G = _grafo_entre_puntos(lat_o, lon_o, lat_d, lon_d)
 
@@ -182,8 +201,17 @@ def calcular_ruta(origen: str, destino: str) -> dict:
     }
 
 
+FACTORES_CONGESTION: dict[int, float] = {
+    7: 1.30, 8: 1.40, 9: 1.20,   # Rush mañana GDL
+    13: 1.15, 14: 1.15,            # Hora de comida
+    17: 1.35, 18: 1.45, 19: 1.20, # Rush tarde GDL
+}
+
 def _estimar_duracion(G: nx.MultiDiGraph, ruta_nodos: list) -> float:
-    """Estima duración en segundos según tipo de vía de cada segmento."""
+    """Estima duración en segundos ajustando por congestión horaria en GDL."""
+    hora_actual = datetime.now().hour
+    factor = FACTORES_CONGESTION.get(hora_actual, 1.0)
+
     total_seg = 0.0
     for i in range(len(ruta_nodos) - 1):
         datos_arista = G[ruta_nodos[i]][ruta_nodos[i + 1]][0]
@@ -192,7 +220,7 @@ def _estimar_duracion(G: nx.MultiDiGraph, ruta_nodos: list) -> float:
         if isinstance(tipo_via, list):
             tipo_via = tipo_via[0]
         velocidad = VELOCIDADES_VIA.get(tipo_via, VELOCIDAD_DEFAULT)
-        total_seg += (longitud_m / 1000) / velocidad * 3600
+        total_seg += (longitud_m / 1000) / (velocidad / factor) * 3600
     return total_seg
 
 

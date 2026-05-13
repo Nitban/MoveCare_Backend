@@ -26,8 +26,9 @@ def puntaje_accesibilidad(discapacidad: Optional[str], accesorios: Optional[str]
     """
     Retorna un valor entre 0.0 y 1.0.
     1.0 → vehículo completamente compatible
-    0.5 → compatibilidad parcial
-    0.0 → incompatible (penalización máxima)
+    0.6 → compatibilidad parcial (vehículo amplio para motriz/obesidad)
+    0.3 → sin accesorios pero puede intentarlo
+    0.0 → incompatible total (no debería asignarse)
     """
     if not discapacidad:
         return 1.0
@@ -40,16 +41,33 @@ def puntaje_accesibilidad(discapacidad: Optional[str], accesorios: Optional[str]
 
     texto_accesorios = (accesorios or "").lower()
 
-    # Basta con que el vehículo tenga AL MENOS UNO de los accesorios requeridos
+    # Compatibilidad perfecta
     if any(kw in texto_accesorios for kw in keywords):
         return 1.0
+
+    # Compatibilidad parcial: vehículo amplio para casos de movilidad/obesidad
+    if clave in ["motriz", "obesidad"] and any(
+        kw in texto_accesorios for kw in ["amplio", "espacioso", "grande", "suv", "van"]
+    ):
+        return 0.6
+
+    # Sin accesorios específicos pero existe vehículo disponible
+    if texto_accesorios:
+        return 0.3
+
     return 0.0
 
 
-def puntaje_rating(rating_promedio: Optional[float]) -> float:
-    """Normaliza calificación 0–5 a 0–1. Conductores nuevos reciben 0.7."""
+def puntaje_rating(rating_promedio: Optional[float], viajes_completados: int = 0) -> float:
+    """
+    Normaliza calificación 0–5 a 0–1 con ajuste bayesiano.
+    Conductores con pocos viajes tienen menos peso aunque su rating sea alto.
+    """
     if rating_promedio is None:
-        return 0.7
+        return max(0.4, 0.7 - (viajes_completados * 0.01))
+    if viajes_completados < 10:
+        confianza = viajes_completados / 10.0
+        return round(0.5 + confianza * (rating_promedio / 5.0 - 0.5), 4)
     return max(0.0, min(rating_promedio / 5.0, 1.0))
 
 
@@ -73,10 +91,11 @@ def distancia_haversine(lat1: Optional[float], lon1: Optional[float],
 
 
 def puntaje_distancia(distancia_km: float, radio_max_km: float = 20.0) -> float:
-    """Mayor proximidad = mayor puntaje. Fuera del radio máximo → 0."""
+    """Mayor proximidad = mayor puntaje. Penalización cuadrática para favorecer conductores cercanos."""
     if distancia_km >= radio_max_km:
         return 0.0
-    return 1.0 - (distancia_km / radio_max_km)
+    normalizado = distancia_km / radio_max_km
+    return 1.0 - (normalizado ** 1.5)
 
 
 def puntaje_capacidad(capacidad: Optional[int], con_acompanante: bool) -> float:
@@ -98,6 +117,7 @@ def calcular_costo(
     lon_viaje: Optional[float],
     capacidad: Optional[int],
     con_acompanante: bool,
+    viajes_completados: int = 0,
 ) -> float:
     """
     Retorna el COSTO de asignación (0 = mejor, 1 = peor).
@@ -107,14 +127,14 @@ def calcular_costo(
       Accesibilidad : 40%
       Distancia     : 35%
       Rating        : 15%
-      Capacidad     :10%
+      Capacidad     : 10%
     """
     distancia_km = distancia_haversine(lat_conductor, lon_conductor, lat_viaje, lon_viaje)
 
     score = (
         0.40 * puntaje_accesibilidad(discapacidad, accesorios)
         + 0.35 * puntaje_distancia(distancia_km)
-        + 0.15 * puntaje_rating(rating_promedio)
+        + 0.15 * puntaje_rating(rating_promedio, viajes_completados)
         + 0.10 * puntaje_capacidad(capacidad, con_acompanante)
     )
 

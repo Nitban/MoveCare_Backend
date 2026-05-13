@@ -27,6 +27,33 @@ def _empty_metrics() -> dict:
     }
 
 
+def _detectar_anomalias(df: pd.DataFrame) -> list:
+    anomalias = []
+
+    if len(df) >= 10:
+        cals_recientes = df.tail(5)["cal_conductor"].dropna()
+        cals_previas = df.iloc[-15:-5]["cal_conductor"].dropna()
+        if len(cals_recientes) > 0 and len(cals_previas) > 0:
+            caida = float(cals_previas.mean()) - float(cals_recientes.mean())
+            if caida > 1.0:
+                anomalias.append({
+                    "tipo": "caida_rating",
+                    "severidad": "alta" if caida > 1.5 else "media",
+                    "detalle": f"Rating cayó {round(caida, 1)} estrellas en los últimos 5 viajes",
+                })
+
+    estados_recientes = df.tail(10)["estado"]
+    tasa_cancelacion = (estados_recientes == "cancelado").sum() / len(estados_recientes)
+    if tasa_cancelacion > 0.3:
+        anomalias.append({
+            "tipo": "cancelaciones_altas",
+            "severidad": "alta" if tasa_cancelacion > 0.5 else "media",
+            "detalle": f"{round(tasa_cancelacion * 100, 1)}% de cancelaciones en los últimos 10 viajes",
+        })
+
+    return anomalias
+
+
 def obtener_metricas_conductor(db: Session, id_usuario: str) -> dict:
     # Buscar el conductor por id_usuario
     conductor = db.query(Conductor).filter(
@@ -61,6 +88,7 @@ def obtener_metricas_conductor(db: Session, id_usuario: str) -> dict:
 
     df = pd.DataFrame(registros)
     df["fecha"] = pd.to_datetime(df["fecha"])
+    df["estado"] = df["estado"].str.lower()
 
     # ── KPIs ──────────────────────────────────────────────────────────────────
     total_viajes = len(df)
@@ -119,6 +147,19 @@ def obtener_metricas_conductor(db: Session, id_usuario: str) -> dict:
 
     ganancia_promedio = round(ganancias_total / total_viajes, 2) if total_viajes > 0 else 0.0
 
+    # ── Proyección de ganancias ───────────────────────────────────────────────
+    proyeccion_7d = None
+    proyeccion_30d = None
+    tendencia = "sin_datos"
+
+    ganancias_diarias = df.groupby(df["fecha"].dt.date)["costo"].sum()
+    if len(ganancias_diarias) >= 3:
+        ema = ganancias_diarias.ewm(span=3).mean()
+        promedio_reciente = float(ema.iloc[-1])
+        proyeccion_7d = round(promedio_reciente * 7, 2)
+        proyeccion_30d = round(promedio_reciente * 30, 2)
+        tendencia = "creciente" if float(ema.iloc[-1]) > float(ema.iloc[0]) else "decreciente"
+
     return {
         "kpis": {
             "total_viajes": total_viajes,
@@ -141,4 +182,10 @@ def obtener_metricas_conductor(db: Session, id_usuario: str) -> dict:
             "ganancia_promedio": ganancia_promedio,
             "mejor_dia": mejor_dia,
         },
+        "proyecciones": {
+            "proximos_7_dias": proyeccion_7d,
+            "proximos_30_dias": proyeccion_30d,
+            "tendencia": tendencia,
+        },
+        "anomalias": _detectar_anomalias(df),
     }

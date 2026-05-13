@@ -16,7 +16,7 @@ from uuid import UUID
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from sqlalchemy import and_
+from sqlalchemy import and_, func as sa_func
 from sqlalchemy.orm import Session
 
 from app.ai.asignacion.scoring import calcular_costo
@@ -75,22 +75,15 @@ def _conductores_disponibles(db: Session) -> list[dict]:
             continue
         visto.add(c.id_conductor)
 
-        rating = (
-            db.query(
-                db.query(Viaje.cal_conductor)
-                .filter(
-                    Viaje.id_conductor == c.id_conductor,
-                    Viaje.cal_conductor.isnot(None),
-                )
-                .subquery()
-            ).count()
-        )
-        # Calcular promedio de calificación
-        from sqlalchemy import func as sa_func
         rating_avg = db.query(sa_func.avg(Viaje.cal_conductor)).filter(
             Viaje.id_conductor == c.id_conductor,
             Viaje.cal_conductor.isnot(None),
         ).scalar()
+
+        viajes_completados = db.query(sa_func.count(Viaje.id_viaje)).filter(
+            Viaje.id_conductor == c.id_conductor,
+            Viaje.estado == "Finalizado",
+        ).scalar() or 0
 
         conductores.append(
             {
@@ -99,6 +92,7 @@ def _conductores_disponibles(db: Session) -> list[dict]:
                 "accesorios": v.accesorios if v else None,
                 "capacidad": v.capacidad if v else None,
                 "rating_avg": float(rating_avg) if rating_avg else None,
+                "viajes_completados": viajes_completados,
                 "lat": ub.latitud if ub else None,
                 "lon": ub.longitud if ub else None,
             }
@@ -203,6 +197,7 @@ def asignar_conductores(
                 lon_viaje=ti["lon"],
                 capacidad=c["capacidad"],
                 con_acompanante=bool(ti["viaje"].check_acompanante),
+                viajes_completados=c["viajes_completados"],
             )
 
     # 5. Algoritmo húngaro
