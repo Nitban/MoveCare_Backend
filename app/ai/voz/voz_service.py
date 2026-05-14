@@ -342,10 +342,10 @@ def detectar_intencion(texto: str) -> tuple[str, float]:
 def _extraer_destino(texto: str) -> Optional[str]:
     """Extrae el destino principal del texto."""
     patrones = [
-        r"(?:ir|llevarme|llévame|voy|quiero\s+ir)\s+(?:al?|hasta|hacia)\s+([a-záéíóúüñ\s]+?)(?:\s+(?:mañana|hoy|el|a\s+las|desde|,|$))",
-        r"(?:viaje|carro)\s+(?:al?|hasta|hacia)\s+([a-záéíóúüñ\s]+?)(?:\s+(?:mañana|hoy|el|a\s+las|desde|,|$))",
-        r"(?:al?|hasta|hacia)\s+([a-záéíóúüñ\s]{3,40})(?:\s+(?:mañana|hoy|el|a\s+las|desde|,|$))",
-        r"destino\s+([a-záéíóúüñ\s]+?)(?:\s+(?:mañana|hoy|el|a\s+las|,|$))",
+        r"(?:ir|llevarme|llévame|voy|quiero\s+ir)\s+(?:al?|hasta|hacia)\s+([a-záéíóúüñ\s]+?)(?:\s+(?:mañana|hoy|el|a\s+las|desde)|,|$)",
+        r"(?:viaje|carro)\s+(?:al?|hasta|hacia)\s+([a-záéíóúüñ\s]+?)(?:\s+(?:mañana|hoy|el|a\s+las|desde)|,|$)",
+        r"(?:al?|hasta|hacia)\s+([a-záéíóúüñ\s]{3,40})(?:\s+(?:mañana|hoy|el|a\s+las|desde)|,|$)",
+        r"destino\s+([a-záéíóúüñ\s]+?)(?:\s+(?:mañana|hoy|el|a\s+las)|,|$)",
     ]
     texto_norm = texto.lower()
     for patron in patrones:
@@ -358,7 +358,7 @@ def _extraer_destino(texto: str) -> Optional[str]:
 def _extraer_origen(texto: str) -> Optional[str]:
     """Extrae el punto de inicio del texto."""
     patrones = [
-        r"(?:desde|de|saliendo\s+de)\s+([a-záéíóúüñ\s]+?)(?:\s+(?:al?|hasta|hacia|a\s+las|,|$))",
+        r"(?:desde|de|saliendo\s+de)\s+([a-záéíóúüñ\s]+?)(?:\s+(?:al?|hasta|hacia|a\s+las)|,|$)",
         r"(?:punto\s+de\s+inicio|origen)\s+([a-záéíóúüñ\s]+?)(?:\s|,|$)",
     ]
     texto_norm = texto.lower()
@@ -411,6 +411,16 @@ def _extraer_fecha_hora(texto: str) -> Optional[str]:
     elif fecha_base != ahora.date():
         return f"{fecha_base}T09:00:00"  # hora por defecto si solo se menciona el día
 
+    return None
+
+
+def _extraer_metodo_pago(texto: str) -> Optional[str]:
+    """Extrae método de pago mencionado en el comando de voz."""
+    texto_norm = texto.lower()
+    if any(kw in texto_norm for kw in ["efectivo", "en cash", "en efectivo", "pago en efectivo"]):
+        return "Efectivo"
+    if any(kw in texto_norm for kw in ["tarjeta", "con tarjeta", "débito", "crédito", "debito", "credito"]):
+        return "Tarjeta"
     return None
 
 
@@ -622,23 +632,29 @@ def interpretar_comando(texto: str) -> dict:
         destino = _extraer_destino(texto)
         origen = _extraer_origen(texto)
         fecha_hora = _extraer_fecha_hora(texto)
+        metodo_pago = _extraer_metodo_pago(texto)
         if destino:
             entidades["destino"] = destino
         if origen:
             entidades["punto_inicio"] = origen
         if fecha_hora:
             entidades["fecha_hora_inicio"] = fecha_hora
+        if metodo_pago:
+            entidades["metodo_pago"] = metodo_pago
 
     elif intencion == "solicitar_viaje_multiple":
         destinos = _extraer_destinos_multiples(texto)
         origen = _extraer_origen(texto)
         fecha_hora = _extraer_fecha_hora(texto)
+        metodo_pago = _extraer_metodo_pago(texto)
         entidades["destinos"] = destinos
         entidades["check_destinos"] = True
         if origen:
             entidades["punto_inicio"] = origen
         if fecha_hora:
             entidades["fecha_hora_inicio"] = fecha_hora
+        if metodo_pago:
+            entidades["metodo_pago"] = metodo_pago
 
     elif intencion == "crear_acompanante":
         nombre = _extraer_nombre_acompanante(texto)
