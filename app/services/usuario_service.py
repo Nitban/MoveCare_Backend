@@ -52,51 +52,56 @@ class UsuarioService:
 
         # HTML Estilizado para MoveCare con tipografía como logo
         html = f"""
-        <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; padding: 40px 20px;">
-            <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+            <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; padding: 40px 20px;">
+                <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
 
-                <div style="background-color: #ffffff; padding: 30px 20px; text-align: center; border-bottom: 1px solid #f0f0f0;">
-                    <h1 style="margin: 0; color: #1976d2; font-size: 28px; font-weight: 800; letter-spacing: 1px;">
-                        MoveCare
-                    </h1>
-                </div>
-
-                <div style="padding: 30px;">
-                    <h2 style="color: #2c3e50; font-size: 22px; margin-top: 0; text-align: center;">Bienvenido</h2>
-                    <p style="font-size: 16px; color: #555555; line-height: 1.6; text-align: center;">
-                        Gracias por registrarte. Para poder iniciar sesión y utilizar la aplicación, necesitamos que confirmes tu correo electrónico.
-                    </p>
-
-                    <p style="font-size: 16px; color: #555555; line-height: 1.6; text-align: center; margin-top: 20px;">
-                        Ingresa el siguiente código de verificación en la aplicación:
-                    </p>
-
-                    <div style="text-align: center; margin: 30px 0;">
-                        <span style="display: inline-block; background-color: #e3f2fd; color: #1976d2; padding: 15px 30px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 2px; border: 1px solid #bbdefb;">
-                            {uid}
-                        </span>
+                    <div style="background-color: #ffffff; padding: 30px 20px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+                        <h1 style="margin: 0; color: #1976d2; font-size: 28px; font-weight: 800; letter-spacing: 1px;">
+                            MoveCare
+                        </h1>
                     </div>
 
-                    <p style="font-size: 14px; color: #777777; text-align: center; line-height: 1.5;">
-                        Una vez ingresado este código, tu cuenta quedará verificada. Si no solicitaste este registro, puedes ignorar este mensaje de forma segura.
-                    </p>
-                </div>
+                    <div style="padding: 30px;">
+                        <h2 style="color: #2c3e50; font-size: 22px; margin-top: 0; text-align: center;">Bienvenido</h2>
+                        <p style="font-size: 16px; color: #555555; line-height: 1.6; text-align: center;">
+                            Gracias por registrarte. Para poder iniciar sesión y utilizar la aplicación, necesitamos que confirmes tu correo electrónico.
+                        </p>
 
-                <div style="background-color: #f9f9f9; padding: 20px; text-align: center;">
-                    <p style="font-size: 12px; color: #999999; margin: 0;">
-                        © 2026 MoveCare. Todos los derechos reservados.
-                    </p>
-                </div>
+                        <p style="font-size: 16px; color: #555555; line-height: 1.6; text-align: center; margin-top: 20px;">
+                            Ingresa el siguiente código de verificación en la aplicación:
+                        </p>
 
+                        <div style="text-align: center; margin: 30px 0;">
+                            <span style="display: inline-block; background-color: #e3f2fd; color: #1976d2; padding: 15px 30px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 2px; border: 1px solid #bbdefb;">
+                                {uid}
+                            </span>
+                        </div>
+
+                        <p style="font-size: 14px; color: #777777; text-align: center; line-height: 1.5;">
+                            Una vez ingresado este código, tu cuenta quedará verificada. Si no solicitaste este registro, puedes ignorar este mensaje de forma segura.
+                        </p>
+                    </div>
+
+                    <div style="background-color: #f9f9f9; padding: 20px; text-align: center;">
+                        <p style="font-size: 12px; color: #999999; margin: 0;">
+                            © 2026 MoveCare. Todos los derechos reservados.
+                        </p>
+                    </div>
+
+                </div>
             </div>
-        </div>
-        """
+            """
 
-        await EmailService.enviar_correo(
-            usuario.correo,
-            "Verifica tu cuenta | MoveCare",
-            html
-        )
+        # --- AQUÍ ESTÁ LA PROTECCIÓN ---
+        try:
+            await EmailService.enviar_correo(
+                usuario.correo,
+                "Verifica tu cuenta | MoveCare",
+                html
+            )
+        except Exception as e:
+            # Si el correo falla, se imprime en Render pero la app no "crashea"
+            print(f"ADVERTENCIA: Usuario guardado en BD, pero falló el envío del correo. Detalle: {str(e)}")
 
         return usuario
 
