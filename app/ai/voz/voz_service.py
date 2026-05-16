@@ -200,11 +200,18 @@ _PATRONES_INTENCION = {
     # ── Agendamiento ──────────────────────────────────────────────────────
     "establecer_origen": [
         r"(?:mi\s+)?origen\s+es",
+        r"(?:mi\s+)?origen\s+\w",   # "origen Andares" sin "es"
         r"salgo\s+desde",
         r"saliendo\s+desde",
         r"vengo\s+de",
         r"estoy\s+en",
         r"me\s+encuentro\s+en",
+    ],
+    "establecer_hora": [
+        r"\d{1,2}\s+de\s+la\s+(?:noche|tarde|ma[nñ]ana)",  # "9 de la noche"
+        r"(?:son\s+)?las\s+\d{1,2}",                        # "las 9", "son las 9"
+        r"hora\s+\d{1,2}",                                   # "hora 9"
+        r"p[oó]nle\s+(?:la\s+hora\s+)?\d{1,2}",            # "ponle 9"
     ],
     "establecer_destino": [
         r"(?:el\s+)?destino\s+es",
@@ -282,6 +289,7 @@ Intenciones disponibles:
 - filtrar_cancelados: filtrar viajes cancelados
 - filtrar_todos: ver todos los viajes
 - establecer_origen: indica desde dónde sale
+- establecer_hora: indica la hora del viaje ("9 de la noche", "las 3 de la tarde")
 - establecer_destino: indica a dónde quiere ir
 - agregar_parada: quiere agregar una parada al viaje
 - quitar_parada: quiere eliminar una parada
@@ -342,10 +350,10 @@ def detectar_intencion(texto: str) -> tuple[str, float]:
 def _extraer_destino(texto: str) -> Optional[str]:
     """Extrae el destino principal del texto."""
     patrones = [
-        r"(?:ir|llevarme|llévame|voy|quiero\s+ir)\s+(?:al?|hasta|hacia)\s+([a-záéíóúüñ\s]+?)(?:\s+(?:mañana|hoy|el|a\s+las|desde|,|$))",
-        r"(?:viaje|carro)\s+(?:al?|hasta|hacia)\s+([a-záéíóúüñ\s]+?)(?:\s+(?:mañana|hoy|el|a\s+las|desde|,|$))",
-        r"(?:al?|hasta|hacia)\s+([a-záéíóúüñ\s]{3,40})(?:\s+(?:mañana|hoy|el|a\s+las|desde|,|$))",
-        r"destino\s+([a-záéíóúüñ\s]+?)(?:\s+(?:mañana|hoy|el|a\s+las|,|$))",
+        r"(?:ir|llevarme|llévame|voy|quiero\s+ir)\s+(?:al?|hasta|hacia)\s+([a-záéíóúüñ\d\s]+?)(?:\s+(?:mañana|hoy|el\b|a\s+las|desde)|,|$)",
+        r"(?:viaje|carro)\s+(?:al?|hasta|hacia)\s+([a-záéíóúüñ\d\s]+?)(?:\s+(?:mañana|hoy|el\b|a\s+las|desde)|,|$)",
+        r"(?:al?|hasta|hacia)\s+([a-záéíóúüñ\d\s]{3,40})(?:\s+(?:mañana|hoy|el\b|a\s+las|desde)|,|$)",
+        r"destino\s+([a-záéíóúüñ\d\s]+?)(?:\s+(?:mañana|hoy|el\b|a\s+las)|,|$)",
     ]
     texto_norm = texto.lower()
     for patron in patrones:
@@ -358,8 +366,9 @@ def _extraer_destino(texto: str) -> Optional[str]:
 def _extraer_origen(texto: str) -> Optional[str]:
     """Extrae el punto de inicio del texto."""
     patrones = [
-        r"(?:desde|de|saliendo\s+de)\s+([a-záéíóúüñ\s]+?)(?:\s+(?:al?|hasta|hacia|a\s+las|,|$))",
-        r"(?:punto\s+de\s+inicio|origen)\s+([a-záéíóúüñ\s]+?)(?:\s|,|$)",
+        r"(?:desde|de|saliendo\s+de)\s+([a-záéíóúüñ\d\s]+?)(?:\s+(?:al?\b|hasta|hacia|a\s+las)|,|$)",
+        r"(?:estoy|me\s+encuentro)\s+en\s+([a-záéíóúüñ\d\s]+?)(?:\s+(?:al?\b|hasta|hacia|a\s+las)|,|$)",
+        r"(?:punto\s+de\s+inicio|origen)\s+(?:es\s+)?([a-záéíóúüñ\d\s]+?)(?:\s|,|$)",
     ]
     texto_norm = texto.lower()
     for patron in patrones:
@@ -367,6 +376,51 @@ def _extraer_origen(texto: str) -> Optional[str]:
         if m:
             return m.group(1).strip().title()
     return None
+
+
+def _extraer_hora_sola(texto: str) -> Optional[dict]:
+    """
+    Extrae hora y minutos de frases sin contexto de viaje completo.
+    Ejemplos: '9 de la noche', 'las 3 de la tarde', 'son las 10'.
+    Retorna dict con 'hora' y 'minutos' como strings de 2 dígitos, o None.
+    """
+    texto_norm = texto.lower()
+    hora = None
+    minutos = 0
+    periodo = ""
+
+    # Patrón 1: "X de la noche/tarde/mañana"
+    m = re.search(r"(\d{1,2})(?::(\d{2}))?\s+de\s+la\s+(noche|tarde|ma[nñ]ana)", texto_norm)
+    if m:
+        hora = int(m.group(1))
+        minutos = int(m.group(2)) if m.group(2) else 0
+        periodo = m.group(3)
+
+    # Patrón 2: "las X [de la noche/tarde]" o "son las X"
+    if hora is None:
+        m = re.search(r"(?:son\s+)?las\s+(\d{1,2})(?::(\d{2}))?\s*(?:de\s+la\s+(noche|tarde|ma[nñ]ana))?", texto_norm)
+        if m:
+            hora = int(m.group(1))
+            minutos = int(m.group(2)) if m.group(2) else 0
+            periodo = m.group(3) or ""
+
+    # Patrón 3: "hora X"
+    if hora is None:
+        m = re.search(r"hora\s+(\d{1,2})(?::(\d{2}))?", texto_norm)
+        if m:
+            hora = int(m.group(1))
+            minutos = int(m.group(2)) if m.group(2) else 0
+
+    if hora is None:
+        return None
+
+    # Ajuste AM/PM
+    if periodo in ("tarde", "noche") and hora < 12:
+        hora += 12
+    elif periodo == "mañana" and hora == 12:
+        hora = 0
+
+    return {"hora": f"{hora:02d}", "minutos": f"{minutos:02d}"}
 
 
 def _extraer_fecha_hora(texto: str) -> Optional[str]:
@@ -411,6 +465,16 @@ def _extraer_fecha_hora(texto: str) -> Optional[str]:
     elif fecha_base != ahora.date():
         return f"{fecha_base}T09:00:00"  # hora por defecto si solo se menciona el día
 
+    return None
+
+
+def _extraer_metodo_pago(texto: str) -> Optional[str]:
+    """Extrae método de pago mencionado en el comando de voz."""
+    texto_norm = texto.lower()
+    if any(kw in texto_norm for kw in ["efectivo", "en cash", "en efectivo", "pago en efectivo"]):
+        return "Efectivo"
+    if any(kw in texto_norm for kw in ["tarjeta", "con tarjeta", "débito", "crédito", "debito", "credito"]):
+        return "Tarjeta"
     return None
 
 
@@ -539,10 +603,17 @@ def _generar_respuesta_voz(intencion: str, entidades: dict) -> str:
         return "Mostrando todos los viajes."
 
     if intencion == "establecer_origen":
-        origen = entidades.get("origen")
+        origen = entidades.get("punto_inicio")
         if origen:
             return f"Origen establecido: {origen}."
         return "¿Desde dónde sales?"
+
+    if intencion == "establecer_hora":
+        hora = entidades.get("hora")
+        minutos = entidades.get("minutos", "00")
+        if hora:
+            return f"Hora establecida: {hora}:{minutos}."
+        return "¿A qué hora necesitas el viaje?"
 
     if intencion == "establecer_destino":
         destino = entidades.get("destino")
@@ -587,6 +658,7 @@ _PANTALLAS = {
     "filtrar_cancelados": "filtrar_cancelados",
     "filtrar_todos": "filtrar_todos",
     "establecer_origen": "establecer_origen",
+    "establecer_hora": "establecer_hora",
     "establecer_destino": "establecer_destino",
     "agregar_parada": "agregar_parada",
     "quitar_parada": "quitar_parada",
@@ -622,23 +694,29 @@ def interpretar_comando(texto: str) -> dict:
         destino = _extraer_destino(texto)
         origen = _extraer_origen(texto)
         fecha_hora = _extraer_fecha_hora(texto)
+        metodo_pago = _extraer_metodo_pago(texto)
         if destino:
             entidades["destino"] = destino
         if origen:
             entidades["punto_inicio"] = origen
         if fecha_hora:
             entidades["fecha_hora_inicio"] = fecha_hora
+        if metodo_pago:
+            entidades["metodo_pago"] = metodo_pago
 
     elif intencion == "solicitar_viaje_multiple":
         destinos = _extraer_destinos_multiples(texto)
         origen = _extraer_origen(texto)
         fecha_hora = _extraer_fecha_hora(texto)
+        metodo_pago = _extraer_metodo_pago(texto)
         entidades["destinos"] = destinos
         entidades["check_destinos"] = True
         if origen:
             entidades["punto_inicio"] = origen
         if fecha_hora:
             entidades["fecha_hora_inicio"] = fecha_hora
+        if metodo_pago:
+            entidades["metodo_pago"] = metodo_pago
 
     elif intencion == "crear_acompanante":
         nombre = _extraer_nombre_acompanante(texto)
@@ -657,6 +735,12 @@ def interpretar_comando(texto: str) -> dict:
         origen = _extraer_origen(texto)
         if origen:
             entidades["punto_inicio"] = origen
+
+    elif intencion == "establecer_hora":
+        hora_info = _extraer_hora_sola(texto)
+        if hora_info:
+            entidades["hora"] = hora_info["hora"]
+            entidades["minutos"] = hora_info["minutos"]
 
     elif intencion == "agregar_parada":
         parada = _extraer_parada(texto)
