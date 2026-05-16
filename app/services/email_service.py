@@ -1,43 +1,41 @@
 import os
-import httpx
+import aiosmtplib
+from email.message import EmailMessage
 
 
 class EmailService:
 
     @staticmethod
     async def enviar_correo(destinatario: str, asunto: str, html: str):
-        # 1. Recuperamos las variables de entorno
-        api_key = os.getenv("BREVO_API_KEY")
-        sender_email = os.getenv("BREVO_SENDER_EMAIL")
+        # 1. Recuperamos las variables de entorno de Gmail
+        sender_email = os.getenv("GMAIL_SENDER_EMAIL")
+        app_password = os.getenv("GMAIL_APP_PASSWORD")
 
-        # 2. Configuramos la cabecera y la URL de la API de Brevo
-        url = "https://api.brevo.com/v3/smtp/email"
-        headers = {
-            "accept": "application/json",
-            "api-key": api_key,
-            "content-type": "application/json"
-        }
+        if not sender_email or not app_password:
+            raise Exception("Error de configuración: Faltan credenciales de Gmail.")
 
-        # 3. Armamos el cuerpo del mensaje
-        payload = {
-            "sender": {
-                "email": sender_email,
-                "name": "MoveCare"  # Nombre que verá el usuario en su bandeja
-            },
-            "to": [
-                {"email": destinatario}
-            ],
-            "subject": asunto,
-            "htmlContent": html
-        }
+        # 2. Configuramos la cabecera y el cuerpo del mensaje
+        msg = EmailMessage()
+        # El formato "Nombre <correo>" hace que en la bandeja de entrada diga "MoveCare"
+        msg['From'] = f"MoveCare <{sender_email}>"
+        msg['To'] = destinatario
+        msg['Subject'] = asunto
 
-        # 4. Hacemos la petición HTTP asíncrona
+        # Agregamos un texto plano por defecto (requerido por buenas prácticas)
+        msg.set_content("Tu cliente de correo no soporta mensajes HTML.")
+        # Inyectamos el HTML estilizado que armas en el UsuarioService
+        msg.add_alternative(html, subtype='html')
+
+        # 3. Hacemos la conexión SMTP asíncrona a los servidores de Google
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, json=payload, headers=headers)
-
-                # Si hay un error de autenticación o validación, esto lo atrapará
-                response.raise_for_status()
-
+            await aiosmtplib.send(
+                msg,
+                hostname="smtp.gmail.com",
+                port=587,
+                start_tls=True,
+                username=sender_email,
+                password=app_password
+            )
         except Exception as e:
-            raise Exception(f"Error al enviar correo vía API de Brevo: {str(e)}")
+            # Atrapa errores como contraseñas inválidas o bloqueos de Google
+            raise Exception(f"Error al enviar correo vía Gmail: {str(e)}")
