@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, Text, TIMESTAMP
+from sqlalchemy import Column, String, Boolean, Text, TIMESTAMP, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -24,6 +24,9 @@ class Usuario(Base):
     autentificado = Column(Boolean, default=False)                 # email verificado
     foto_perfil = Column(Text, nullable=False)
     fecha_registro = Column(TIMESTAMP, server_default=func.now())
+
+    reset_codigo = Column(String(4), nullable=True)
+    reset_expiracion = Column(DateTime, nullable=True)
 
     conductor = relationship("Conductor", back_populates="usuario", uselist=False)
     pasajero = relationship("Pasajero", back_populates="usuario", uselist=False)
