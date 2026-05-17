@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.auth import RegistroPasajero, RegistroConductor, LoginSchema, UsuarioUpdate, RegistroAdmin, SolicitarRecuperacion, ValidarCodigo, CambiarPassword
 from app.schemas.confirmarCorreo import ConfirmarCorreoRequest
+from app.services.firebase_service import FirebaseAuthService
 from app.services.usuario_service import UsuarioService
 from app.core.security import get_current_user
 
@@ -132,7 +133,7 @@ def validar_codigo_endpoint(req: ValidarCodigo, db: Session = Depends(get_db)):
 
 @router.post("/recuperar-password/cambiar")
 def cambiar_password_endpoint(req: CambiarPassword, db: Session = Depends(get_db)):
-    exito, msj = UsuarioService.cambiar_password(db, req.correo, req.codigo, req.nueva_password)
+    exito, msj = FirebaseAuthService.cambiar_password(db, req.correo, req.codigo, req.nueva_password)
     if not exito:
         raise HTTPException(status_code=400, detail=msj)
     return {"message": msj}

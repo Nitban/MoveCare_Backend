@@ -305,23 +305,3 @@ class UsuarioService:
 
         return True, "Código válido."
 
-    @staticmethod
-    def cambiar_password(db: Session, correo: str, codigo: str, nueva_password: str):
-        es_valido, msj = UsuarioService.validar_codigo_recuperacion(db, correo, codigo)
-        if not es_valido:
-            return False, msj
-
-        usuario = db.query(Usuario).filter(Usuario.correo == correo).first()
-
-        # Cambiamos la contraseña en Firebase
-        try:
-            FirebaseAuthService.cambiar_password(usuario.uid_firebase, nueva_password)
-        except Exception as e:
-            return False, f"Error en Firebase: {str(e)}"
-
-        # Limpiamos las columnas para que el código no se pueda reutilizar
-        usuario.reset_codigo = None
-        usuario.reset_expiracion = None
-        db.commit()
-
-        return True, "Contraseña actualizada correctamente."
