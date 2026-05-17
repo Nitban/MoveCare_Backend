@@ -125,7 +125,7 @@ async def solicitar_recuperacion_endpoint(req: SolicitarRecuperacion, db: Sessio
 
 @router.post("/recuperar-password/validar")
 def validar_codigo_endpoint(req: ValidarCodigo, db: Session = Depends(get_db)):
-    exito, msj = UsuarioService.validar_codigo(db, req.correo, req.codigo)
+    exito, msj = UsuarioService.validar_codigo_recuperacion(db, req.correo, req.codigo)
     if not exito:
         raise HTTPException(status_code=400, detail=msj)
     return {"message": msj}
