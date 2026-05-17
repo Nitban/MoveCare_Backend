@@ -133,7 +133,7 @@ def validar_codigo_endpoint(req: ValidarCodigo, db: Session = Depends(get_db)):
 
 @router.post("/recuperar-password/cambiar")
 def cambiar_password_endpoint(req: CambiarPassword, db: Session = Depends(get_db)):
-    exito, msj = FirebaseAuthService.cambiar_password(db, req.correo, req.codigo, req.nueva_password)
+    exito, msj = FirebaseAuthService.cambiar_password(req.correo, req.nueva_password)
     if not exito:
         raise HTTPException(status_code=400, detail=msj)
     return {"message": msj}
