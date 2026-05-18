@@ -10,6 +10,9 @@ class EmailService:
         api_key = os.getenv("BREVO_API_KEY")
         sender_email = os.getenv("BREVO_SENDER_EMAIL")
 
+        if not api_key or not sender_email:
+            raise Exception("Faltan las variables de entorno de Brevo en Render.")
+
         # 2. Configuramos la cabecera y la URL de la API de Brevo
         url = "https://api.brevo.com/v3/smtp/email"
         headers = {
@@ -33,11 +36,14 @@ class EmailService:
 
         # 4. Hacemos la petición HTTP asíncrona
         try:
-            async with httpx.AsyncClient() as client:
+            # timeout=10.0 asegura que si Brevo está lento, no congele tu backend
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(url, json=payload, headers=headers)
 
-                # Si hay un error de autenticación o validación, esto lo atrapará
-                response.raise_for_status()
+                # Si Brevo rechaza el correo (ej. API Key mala), extraemos su mensaje
+                if response.status_code != 201 and response.status_code != 200:
+                    error_msg = response.json().get("message", "Error desconocido en Brevo")
+                    raise Exception(f"Brevo rechazó la petición: {error_msg}")
 
-        except Exception as e:
-            raise Exception(f"Error al enviar correo vía API de Brevo: {str(e)}")
+        except httpx.RequestError as e:
+            raise Exception(f"Error de red al intentar conectar con Brevo: {str(e)}")

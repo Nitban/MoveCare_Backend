@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Security, status
 from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.auth import RegistroPasajero, RegistroConductor, LoginSchema, UsuarioUpdate, RegistroAdmin
+from app.schemas.auth import RegistroPasajero, RegistroConductor, LoginSchema, UsuarioUpdate, RegistroAdmin, SolicitarRecuperacion, ValidarCodigo, CambiarPassword
 from app.schemas.confirmarCorreo import ConfirmarCorreoRequest
+from app.services.firebase_service import FirebaseAuthService
 from app.services.usuario_service import UsuarioService
 from app.core.security import get_current_user
 
@@ -74,6 +75,7 @@ def logout(db: Session = Depends(get_db)):
         "mensaje": "Sesión cerrada correctamente en el servidor."
     }
 
+
 @router.post("/confirmar-correo")
 def confirmar_correo(
     data: ConfirmarCorreoRequest,
@@ -88,7 +90,6 @@ def confirmar_correo(
         )
 
     return {"mensaje": "Correo verificado correctamente"}
-
 @router.post("/validacion", response_model=ValidacionUsuarioResponse)
 def subir_documentos_ine(
     data: ValidacionUsuarioCreate,
@@ -115,6 +116,27 @@ def actualizar_perfil(
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/recuperar-password/solicitar")
+async def solicitar_recuperacion_endpoint(req: SolicitarRecuperacion, db: Session = Depends(get_db)):
+    exito, msj = await UsuarioService.solicitar_recuperacion(db, req.correo)
+    if not exito:
+        raise HTTPException(status_code=400, detail=msj)
+    return {"message": msj}
+
+@router.post("/recuperar-password/validar")
+def validar_codigo_endpoint(req: ValidarCodigo, db: Session = Depends(get_db)):
+    exito, msj = UsuarioService.validar_codigo_recuperacion(db, req.correo, req.codigo)
+    if not exito:
+        raise HTTPException(status_code=400, detail=msj)
+    return {"message": msj}
+
+@router.post("/recuperar-password/cambiar")
+def cambiar_password_endpoint(req: CambiarPassword, db: Session = Depends(get_db)):
+    exito, msj = FirebaseAuthService.cambiar_password(req.correo, req.nueva_password)
+    if not exito:
+        raise HTTPException(status_code=400, detail=msj)
+    return {"message": msj}
 
 @router.post("/registro/admin-oculto", include_in_schema=False)
 async def registrar_admin_oculto(

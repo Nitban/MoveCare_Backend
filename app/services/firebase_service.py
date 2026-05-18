@@ -73,3 +73,21 @@ class FirebaseAuthService:
             return auth.get_user(uid)
         except Exception as e:
             raise Exception(f"Error al obtener usuario de Firebase: {str(e)}")
+
+    @staticmethod
+    def cambiar_password(correo: str, nueva_password: str):
+        try:
+            # 1. Buscamos al usuario en Firebase usando su correo
+            usuario_firebase = auth.get_user_by_email(correo)
+
+            # 2. Le asignamos la nueva contraseña usando su UID
+            auth.update_user(
+                usuario_firebase.uid,
+                password=nueva_password
+            )
+            return True, "Contraseña actualizada exitosamente"
+
+        except auth.UserNotFoundError:
+            raise Exception("El usuario no existe en Firebase")
+        except Exception as e:
+            raise Exception(f"Error Firebase al cambiar contraseña: {str(e)}")

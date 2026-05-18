@@ -49,3 +49,15 @@ class RegistroAdmin(BaseModel):
     nombre_completo: str
     correo: EmailStr
     password: str
+
+class SolicitarRecuperacion(BaseModel):
+    correo: EmailStr
+
+class ValidarCodigo(BaseModel):
+    correo: EmailStr
+    codigo: str
+
+class CambiarPassword(BaseModel):
+    correo: EmailStr
+    codigo: str
+    nueva_password: str
