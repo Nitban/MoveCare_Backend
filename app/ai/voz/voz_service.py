@@ -68,6 +68,7 @@ _PATRONES_INTENCION = {
         r"necesito\s+transporte",
         r"pide\s+(un\s+)?viaje",
         r"un\s+viaje",
+        r"\bviaje\s+(?:al?|hasta|hacia)\s+",
         r"necesito\s+(un\s+)?carro",
         r"quiero\s+(un\s+)?carro",
         r"^viaje$",
