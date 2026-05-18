@@ -288,6 +288,25 @@ _DIAS = {
     "jueves": 3, "viernes": 4, "sábado": 5, "sabado": 5, "domingo": 6,
 }
 
+# Números en palabras → dígitos (para horas habladas)
+_NUMEROS_HORA = {
+    "una": "1", "uno": "1", "dos": "2", "tres": "3", "cuatro": "4",
+    "cinco": "5", "seis": "6", "siete": "7", "ocho": "8", "nueve": "9",
+    "diez": "10", "once": "11", "doce": "12", "trece": "13",
+    "catorce": "14", "quince": "15", "dieciséis": "16", "dieciseis": "16",
+    "diecisiete": "17", "dieciocho": "18", "diecinueve": "19",
+    "veinte": "20", "veintiuno": "21", "veintidós": "22", "veintidos": "22",
+    "veintitrés": "23", "veintitres": "23",
+}
+
+
+def _normalizar_numeros(texto: str) -> str:
+    """Reemplaza números escritos por dígitos para facilitar extracción de horas."""
+    for palabra, digito in _NUMEROS_HORA.items():
+        texto = re.sub(rf"\b{palabra}\b", digito, texto, flags=re.IGNORECASE)
+    return texto
+
+
 # Meses del año
 _MESES = {
     "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
@@ -384,7 +403,7 @@ def detectar_intencion(texto: str) -> tuple[str, float]:
     Primero intenta regex (rápido, gratis).
     Si no reconoce nada, usa GPT-4o-mini como fallback.
     """
-    texto_norm = texto.lower().strip()
+    texto_norm = _normalizar_numeros(texto.lower().strip())
 
     for intencion, patrones in _PATRONES_INTENCION.items():
         for patron in patrones:
@@ -432,10 +451,10 @@ def _extraer_origen(texto: str) -> Optional[str]:
 def _extraer_hora_sola(texto: str) -> Optional[dict]:
     """
     Extrae hora y minutos de frases sin contexto de viaje completo.
-    Ejemplos: '9 de la noche', 'las 3 de la tarde', 'son las 10'.
+    Ejemplos: '9 de la noche', 'una de la tarde', 'son las 10'.
     Retorna dict con 'hora' y 'minutos' como strings de 2 dígitos, o None.
     """
-    texto_norm = texto.lower()
+    texto_norm = _normalizar_numeros(texto.lower())
     hora = None
     minutos = 0
     periodo = ""
@@ -480,7 +499,7 @@ def _extraer_fecha_hora(texto: str) -> Optional[str]:
     Soporta: hoy, mañana, días de semana, fechas específicas (17 de mayo), horas 12h/24h.
     """
     from datetime import date as _date
-    texto_norm = texto.lower()
+    texto_norm = _normalizar_numeros(texto.lower())
     ahora = datetime.now()
     fecha_base = ahora.date()
     hora_base = None
