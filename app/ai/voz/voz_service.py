@@ -111,6 +111,14 @@ _PATRONES_INTENCION = {
         r"mi\s+informaci[oó]n",
         r"datos\s+personales",
     ],
+    "establecer_acompanante": [
+        r"voy\s+con\s+acompa[nñ]ante",
+        r"llevo\s+acompa[nñ]ante",
+        r"con\s+acompa[nñ]ante",
+        r"quiero\s+(?:un\s+)?acompa[nñ]ante",
+        r"necesito\s+acompa[nñ]ante",
+        r"viene\s+(?:un\s+)?acompa[nñ]ante",
+    ],
     "crear_acompanante": [
         r"agregar\s+(un\s+)?acompa[nñ]ante",
         r"agrega\s+(un\s+)?acompa[nñ]ante",
@@ -120,7 +128,6 @@ _PATRONES_INTENCION = {
         r"registra\s+(un\s+)?acompa[nñ]ante",
         r"crear\s+(un\s+)?acompa[nñ]ante",
         r"crea\s+(un\s+)?acompa[nñ]ante",
-        r"acompa[nñ]ante\b",
     ],
     "ver_acompanantes": [
         r"mis\s+acompa[nñ]antes",
@@ -209,10 +216,37 @@ _PATRONES_INTENCION = {
         r"me\s+encuentro\s+en",
     ],
     "establecer_hora": [
-        r"\d{1,2}\s+de\s+la\s+(?:noche|tarde|ma[nñ]ana)",  # "9 de la noche"
-        r"(?:son\s+)?las\s+\d{1,2}",                        # "las 9", "son las 9"
-        r"hora\s+\d{1,2}",                                   # "hora 9"
-        r"p[oó]nle\s+(?:la\s+hora\s+)?\d{1,2}",            # "ponle 9"
+        r"\d{1,2}\s+de\s+la\s+(?:noche|tarde|ma[nñ]ana)",
+        r"(?:son\s+)?las\s+\d{1,2}",
+        r"hora\s+\d{1,2}",
+        r"p[oó]nle\s+(?:la\s+hora\s+)?\d{1,2}",
+    ],
+    "establecer_fecha": [
+        r"(?:el\s+)?(?:d[ií]a\s+)?\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)",
+        r"fecha\s+(?:el\s+)?\d{1,2}",
+        r"el\s+d[ií]a\s+\d{1,2}",
+        r"d[ií]a\s+\d{1,2}\s+de\s+",
+    ],
+    "establecer_necesidad": [
+        r"(?:necesito|uso|tengo)\s+silla\s+de\s+ruedas",
+        r"movilidad\s+reducida",
+        r"discapacidad\s+(?:visual|auditiva|motriz)",
+        r"soy\s+(?:adulto\s+mayor|de\s+la\s+tercera\s+edad)",
+        r"adulto\s+mayor",
+        r"tercera\s+edad",
+        r"tengo\s+obesidad",
+        r"necesidad\s+especial",
+        r"soy\s+(?:ciego|ciega|sordo|sorda)",
+    ],
+    "establecer_pago": [
+        r"pago\s+(?:en\s+)?efectivo",
+        r"pagar\s+(?:con\s+)?efectivo",
+        r"(?:mi\s+)?pago\s+(?:ser[aá]\s+)?(?:en\s+)?efectivo",
+        r"en\s+efectivo",
+        r"pagar\s+(?:con\s+)?tarjeta",
+        r"pago\s+(?:con\s+)?tarjeta",
+        r"(?:mi\s+)?pago\s+(?:ser[aá]\s+)?(?:con\s+)?tarjeta",
+        r"con\s+tarjeta",
     ],
     "establecer_destino": [
         r"(?:el\s+)?destino\s+es",
@@ -252,6 +286,22 @@ _PATRONES_INTENCION = {
 _DIAS = {
     "lunes": 0, "martes": 1, "miércoles": 2, "miercoles": 2,
     "jueves": 3, "viernes": 4, "sábado": 5, "sabado": 5, "domingo": 6,
+}
+
+# Meses del año
+_MESES = {
+    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
+    "julio": 7, "agosto": 8, "septiembre": 9, "octubre": 10,
+    "noviembre": 11, "diciembre": 12,
+}
+
+# Mapa de palabras clave a tipo de necesidad
+_NECESIDADES_MAP = {
+    "motriz":       ["silla de ruedas", "movilidad reducida", "motriz", "rampa", "elevador"],
+    "visual":       ["discapacidad visual", "visual", "ciego", "ciega", "baja visión", "no veo"],
+    "auditiva":     ["discapacidad auditiva", "auditiva", "sordo", "sorda", "no escucho"],
+    "adulto_mayor": ["adulto mayor", "tercera edad", "soy mayor", "persona mayor"],
+    "obesidad":     ["obesidad", "obeso", "obesa"],
 }
 
 # Parentescos comunes
@@ -427,28 +477,51 @@ def _extraer_hora_sola(texto: str) -> Optional[dict]:
 def _extraer_fecha_hora(texto: str) -> Optional[str]:
     """
     Extrae y normaliza fecha/hora a formato ISO 8601.
-    Soporta: hoy, mañana, días de la semana, horas en formato 12h/24h.
+    Soporta: hoy, mañana, días de semana, fechas específicas (17 de mayo), horas 12h/24h.
     """
+    from datetime import date as _date
     texto_norm = texto.lower()
     ahora = datetime.now()
     fecha_base = ahora.date()
     hora_base = None
+    fecha_explicita = False  # True cuando se menciona una fecha concreta
 
-    # Detectar día base
-    if "mañana" in texto_norm:
+    # Fecha específica: "17 de mayo", "el 17 de mayo", "día 17 de mayo"
+    m_especifica = re.search(
+        r"(?:el\s+)?(?:d[ií]a\s+)?(\d{1,2})\s+de\s+"
+        r"(enero|febrero|marzo|abril|mayo|junio|julio|agosto|"
+        r"septiembre|octubre|noviembre|diciembre)",
+        texto_norm,
+    )
+    if m_especifica:
+        dia = int(m_especifica.group(1))
+        mes = _MESES[m_especifica.group(2)]
+        año = ahora.year
+        try:
+            candidata = _date(año, mes, dia)
+            if candidata < ahora.date():
+                candidata = _date(año + 1, mes, dia)
+            fecha_base = candidata
+            fecha_explicita = True
+        except ValueError:
+            pass
+    elif "mañana" in texto_norm:
         fecha_base = (ahora + timedelta(days=1)).date()
+        fecha_explicita = True
     elif "hoy" in texto_norm:
         fecha_base = ahora.date()
+        fecha_explicita = True
     else:
         for dia_nombre, dia_num in _DIAS.items():
             if dia_nombre in texto_norm:
                 dias_hasta = (dia_num - ahora.weekday()) % 7
                 if dias_hasta == 0:
-                    dias_hasta = 7  # próxima semana si es el mismo día
+                    dias_hasta = 7
                 fecha_base = (ahora + timedelta(days=dias_hasta)).date()
+                fecha_explicita = True
                 break
 
-    # Detectar hora (ej: "a las 10", "a las 3 y media", "10am", "15:30")
+    # Detectar hora
     patron_hora = r"a\s+las\s+(\d{1,2})(?::(\d{2}))?\s*(?:(am|pm|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche))?"
     m = re.search(patron_hora, texto_norm)
     if m:
@@ -463,9 +536,18 @@ def _extraer_fecha_hora(texto: str) -> Optional[str]:
 
     if hora_base:
         return f"{fecha_base}T{hora_base}"
-    elif fecha_base != ahora.date():
-        return f"{fecha_base}T09:00:00"  # hora por defecto si solo se menciona el día
+    elif fecha_explicita:
+        return f"{fecha_base}T09:00:00"
+    return None
 
+
+def _extraer_necesidad(texto: str) -> Optional[str]:
+    """Extrae el tipo de necesidad especial mencionado en el comando."""
+    texto_norm = texto.lower()
+    for tipo, keywords in _NECESIDADES_MAP.items():
+        for kw in keywords:
+            if kw in texto_norm:
+                return tipo
     return None
 
 
@@ -634,6 +716,27 @@ def _generar_respuesta_voz(intencion: str, entidades: dict) -> str:
     if intencion == "enviar_reporte":
         return "Enviando tu reporte."
 
+    if intencion == "establecer_fecha":
+        fecha = entidades.get("fecha_hora_inicio")
+        if fecha:
+            return f"Fecha establecida: {fecha[:10]}."
+        return "¿Para qué fecha necesitas el viaje?"
+
+    if intencion == "establecer_necesidad":
+        n = entidades.get("necesidad")
+        if n:
+            return f"Necesidad especial registrada: {n}."
+        return "¿Qué tipo de necesidad especial tienes?"
+
+    if intencion == "establecer_pago":
+        p = entidades.get("metodo_pago")
+        if p:
+            return f"Método de pago: {p}."
+        return "¿Cómo vas a pagar, efectivo o tarjeta?"
+
+    if intencion == "establecer_acompanante":
+        return "Acompañante registrado en el viaje."
+
     return "Lo siento, no entendí bien. ¿Puedes repetirlo?"
 
 
@@ -660,6 +763,10 @@ _PANTALLAS = {
     "filtrar_todos": "filtrar_todos",
     "establecer_origen": "establecer_origen",
     "establecer_hora": "establecer_hora",
+    "establecer_fecha": "establecer_fecha",
+    "establecer_necesidad": "establecer_necesidad",
+    "establecer_pago": "establecer_pago",
+    "establecer_acompanante": "establecer_acompanante",
     "establecer_destino": "establecer_destino",
     "agregar_parada": "agregar_parada",
     "quitar_parada": "quitar_parada",
@@ -742,6 +849,24 @@ def interpretar_comando(texto: str) -> dict:
         if hora_info:
             entidades["hora"] = hora_info["hora"]
             entidades["minutos"] = hora_info["minutos"]
+
+    elif intencion == "establecer_fecha":
+        fecha_hora = _extraer_fecha_hora(texto)
+        if fecha_hora:
+            entidades["fecha_hora_inicio"] = fecha_hora
+
+    elif intencion == "establecer_necesidad":
+        necesidad = _extraer_necesidad(texto)
+        if necesidad:
+            entidades["necesidad"] = necesidad
+
+    elif intencion == "establecer_pago":
+        metodo = _extraer_metodo_pago(texto)
+        if metodo:
+            entidades["metodo_pago"] = metodo
+
+    elif intencion == "establecer_acompanante":
+        entidades["check_acompanante"] = True
 
     elif intencion == "agregar_parada":
         parada = _extraer_parada(texto)
