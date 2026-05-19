@@ -208,12 +208,15 @@ _PATRONES_INTENCION = {
     # ── Agendamiento ──────────────────────────────────────────────────────
     "establecer_origen": [
         r"(?:mi\s+)?origen\s+es",
-        r"(?:mi\s+)?origen\s+\w",   # "origen Andares" sin "es"
+        r"(?:mi\s+)?origen\s+\w",
         r"salgo\s+desde",
         r"saliendo\s+desde",
         r"vengo\s+de",
         r"estoy\s+en",
         r"me\s+encuentro\s+en",
+        r"\bdesde\b",                    # "desde avenida X", "desde el CETI"
+        r"^de\s+(?:la|el|los|las|\w)",   # "de la farmacia", "de avenida X"
+        r"(?:av(?:enida)?|calle|blvd|boulevard|calzada|paseo|carretera)\s+\w",  # dirección con tipo de vía
     ],
     "establecer_hora": [
         r"\d{1,2}\s+de\s+la\s+(?:noche|tarde|ma[nñ]ana)",
@@ -228,25 +231,27 @@ _PATRONES_INTENCION = {
         r"d[ií]a\s+\d{1,2}\s+de\s+",
     ],
     "establecer_necesidad": [
-        r"(?:necesito|uso|tengo)\s+silla\s+de\s+ruedas",
+        r"silla\s+de\s+ruedas",
         r"movilidad\s+reducida",
         r"discapacidad\s+(?:visual|auditiva|motriz)",
-        r"soy\s+(?:adulto\s+mayor|de\s+la\s+tercera\s+edad)",
         r"adulto\s+mayor",
         r"tercera\s+edad",
         r"tengo\s+obesidad",
         r"necesidad\s+especial",
         r"soy\s+(?:ciego|ciega|sordo|sorda)",
+        r"uso\s+silla",
+        r"tengo\s+discapacidad",
     ],
     "establecer_pago": [
+        r"\befectivo\b",
+        r"\btarjeta\b",
         r"pago\s+(?:en\s+)?efectivo",
         r"pagar\s+(?:con\s+)?efectivo",
-        r"(?:mi\s+)?pago\s+(?:ser[aá]\s+)?(?:en\s+)?efectivo",
         r"en\s+efectivo",
         r"pagar\s+(?:con\s+)?tarjeta",
-        r"pago\s+(?:con\s+)?tarjeta",
-        r"(?:mi\s+)?pago\s+(?:ser[aá]\s+)?(?:con\s+)?tarjeta",
         r"con\s+tarjeta",
+        r"d[eé]bito",
+        r"cr[eé]dito",
     ],
     "establecer_destino": [
         r"(?:el\s+)?destino\s+es",
@@ -436,11 +441,18 @@ def _extraer_destino(texto: str) -> Optional[str]:
 def _extraer_origen(texto: str) -> Optional[str]:
     """Extrae el punto de inicio del texto."""
     patrones = [
-        r"(?:desde|de|saliendo\s+de)\s+([a-záéíóúüñ\d\s]+?)(?:\s+(?:al?\b|hasta|hacia|a\s+las)|,|$)",
-        r"(?:estoy|me\s+encuentro)\s+en\s+([a-záéíóúüñ\d\s]+?)(?:\s+(?:al?\b|hasta|hacia|a\s+las)|,|$)",
-        r"(?:punto\s+de\s+inicio|origen)\s+(?:es\s+)?([a-záéíóúüñ\d\s]+?)(?:\s|,|$)",
+        r"(?:desde|saliendo\s+de)\s+([a-záéíóúüñ\d\s,\.]+?)(?:\s+(?:al?\b|hasta|hacia|a\s+las|para\s+ir)|,|$)",
+        r"vengo\s+de(?:l)?\s+([a-záéíóúüñ\d\s,\.]+?)(?:\s+(?:al?\b|hasta|hacia|a\s+las)|,|$)",
+        r"(?:estoy|me\s+encuentro)\s+en\s+([a-záéíóúüñ\d\s,\.]+?)(?:\s+(?:al?\b|hasta|hacia|a\s+las)|,|$)",
+        r"(?:punto\s+de\s+inicio|origen)\s+(?:es\s+)?([a-záéíóúüñ\d\s,\.]+?)(?:\s|,|$)",
+        # "de la farmacia", "del CETI", "de avenida X"
+        r"^de(?:l)?\s+([a-záéíóúüñ\d\s,\.]+?)(?:\s+(?:al?\b|hasta|hacia)|,|$)",
+        # dirección con tipo de vía como palabra de inicio: "avenida X 123"
+        r"^((?:av(?:enida)?|calle|blvd|boulevard|calzada|paseo|carretera)\s+[a-záéíóúüñ\d\s,\.]+?)(?:\s+(?:al?\b|hasta|hacia)|,|$)",
+        # texto completo sin verbo ni preposición conocida (último recurso)
+        r"^((?:[a-záéíóúüñ]+\s+){1,6}\d{1,5})$",  # "av. hidalgo 123" sin prefijo
     ]
-    texto_norm = texto.lower()
+    texto_norm = texto.lower().strip()
     for patron in patrones:
         m = re.search(patron, texto_norm)
         if m:
